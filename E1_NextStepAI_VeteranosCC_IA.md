@@ -6,14 +6,14 @@
 
 ## Identificação do Grupo
 
-| Campo | Preenchimento |
-|-------|---------------|
+| Campo | Preenchimento | Github |
+|-------|---------------|--------------------|
 | Nome do projeto | NextStepAI |
-| Integrante 1 | Eduardo Benite de Souza Santos — RGM 31218121 |
-| Integrante 2 | Leonardo de Renzo Avellar Fragoso — RGM 47293250 |
-| Integrante 3 | Renan Augusto Szimanski — RGM 31252095 |
-| Integrante 4 | Ryan Dias Rocha — RGM 31131841 |
-| Integrante 5 | Vinícius Moreno de Souza — RGM 32002645 |
+| Integrante 1 | Eduardo Benite de Souza Santos — RGM 31218121 | [Github](#) |
+| Integrante 2 | Leonardo de Renzo Avellar Fragoso — RGM 47293250 | [Github](https://github.com/LeghoDev) |
+| Integrante 3 | Renan Augusto Szimanski — RGM 31252095 | [Github](https://github.com/Renan-Szimanski) |
+| Integrante 4 | Ryan Dias Rocha — RGM 31131841 | [Github](https://github.com/RyanDiasRocha) |
+| Integrante 5 | Vinícius Moreno de Souza — RGM 32002645 | [Github](https://github.com/vvnqp) |
 | Repositório GitHub | https://github.com/Renan-Szimanski/NextStepAI |
 | LLM escolhido | GPT OSS 120B 128k |
 | Técnica avançada (RF09) | RAG (Retrieval-Augmented Generation) + Tool Use |
