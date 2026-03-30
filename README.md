@@ -3,7 +3,7 @@
 
 > Aplicação web inteligente que atua como um mentor de carreira automatizado, mapeando as necessidades reais do mercado e traçando caminhos de desenvolvimento claros e acionáveis.
 
-> ⚠️ **AVISO:** Este arquivo é apenas um esboço inicial do `README.md` do repositório. Ele **não** é o documento oficial de entrega da Etapa 1. Para acessar a proposta, arquitetura e backlog completos (E1), acesse o [Documento da Etapa 1 do Projeto - NextStepAI](https://github.com/Renan-Szimanski/NextStepAI/blob/main/E1_NextStepAI_VeteranosCC_IA.md).
+> ⚠️ **AVISO:** Este arquivo é apenas um esboço inicial do `README.md` do repositório. Ele **não** é o documento oficial de entrega da Etapa 1. Para acessar a proposta, arquitetura e backlog completos (E1), acesse o [Documento da Etapa 1 do Projeto - NextStepAI](https://github.com/Renan-Szimanski/NextStepAI/blob/main/docs/Etapa%201%20-%20Proposta%20do%20Projeto/E1_NextStepAI_VeteranosCC_IA.md).
 
 ## Sobre o Projeto
 
