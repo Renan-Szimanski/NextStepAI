@@ -300,8 +300,7 @@ nextstep-ai/
 │   └── migrations/                 # Scripts SQL versionados (tabelas, pgvector, índices)
 │
 ├── docs/
-│   ├── arquitetura.md              # Decisões arquiteturais, diagramas e fluxos
-│   └── variaveis.md                # Guia de chaves de API necessárias
+│   
 │
 ├── public/                         # Arquivos estáticos (logo, favicon)
 ├── .env.example                    # Template de variáveis de ambiente (sem valores reais)
