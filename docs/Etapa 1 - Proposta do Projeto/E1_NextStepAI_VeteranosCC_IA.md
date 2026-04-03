@@ -15,7 +15,7 @@
 | Integrante 4 | Ryan Dias Rocha — RGM 31131841 | [Github](https://github.com/RyanDiasRocha) |
 | Integrante 5 | Vinícius Moreno de Souza — RGM 32002645 | [Github](https://github.com/vvnqp) |
 | Repositório GitHub | https://github.com/Renan-Szimanski/NextStepAI |
-| LLM escolhido | GPT OSS 120B 128k |
+| LLM escolhido | GPT OSS 120B 128k (principal) / GPT OSS 20B 128k (fallback) |
 | Técnica avançada (RF09) | RAG (Retrieval-Augmented Generation) + Tool Use |
 
 ---
@@ -45,7 +45,8 @@ O grande diferencial do NextStepAI reside na sua sofisticação arquitetônica, 
 | Framework frontend | Next.js 14 (App Router) | Permite SSR, rotas integradas e arquitetura fullstack simplificada. |
 | UI / Estilização | Tailwind CSS + shadcn/ui | Desenvolvimento rápido com componentes acessíveis e interface moderna. |
 | Backend / BFF | Next.js API Routes (Route Handlers) | Integração direta com frontend, reduzindo complexidade de infraestrutura. |
-| LLM (modelo e provedor) | GPT OSS 120B 128k (via Groq) | Modelo open-source de alta performance hospedado na Groq, oferecendo velocidade de inferência significativamente superior em relação a provedores tradicionais, custo reduzido por chamada e janela de contexto de 128k tokens, suficiente para processar currículos extensos combinados com contexto de RAG em uma única chamada. |
+| LLM principal | GPT OSS 120B 128k (via Groq) | Modelo open-source de alta performance hospedado na Groq, oferecendo velocidade de inferência significativamente superior, custo reduzido por chamada e janela de contexto de 128k tokens, suficiente para processar currículos extensos combinados com contexto de RAG em uma única chamada. |
+| LLM fallback | GPT OSS 20B 128k (via Groq) | Versão compacta da mesma família GPT OSS, também hospedada na Groq. Utilizado automaticamente como fallback quando o modelo principal está indisponível, com rate limit excedido ou retornando erros. Por pertencer à mesma família, mantém compatibilidade total com o system prompt, tool calling e formato de saída, sem necessidade de adaptação. Sua menor demanda computacional o torna menos suscetível a congestionamento e mais rápido em cenários de alta carga. |
 | Framework de agentes | LangChain.js | Suporte nativo a tool calling, RAG e orquestração de agentes em TypeScript. |
 | Embeddings | text-embedding-3-small (OpenAI) ou all-MiniLM-L6-v2 (HuggingFace) | O modelo text-embedding-3-small foi escolhido por sua alta qualidade semântica, ideal para comparação precisa entre currículos e descrições de vagas. Como alternativa, o all-MiniLM-L6-v2 pode ser utilizado por ser open-source, leve e executável localmente, reduzindo custos e dependência de APIs externas. A arquitetura permite troca entre os modelos conforme necessidade. |
 | Banco de dados | Supabase (PostgreSQL) | Solução completa com banco relacional, autenticação e storage integrados. |
