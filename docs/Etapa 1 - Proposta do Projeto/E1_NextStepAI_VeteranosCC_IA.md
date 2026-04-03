@@ -50,6 +50,7 @@ O grande diferencial do NextStepAI reside na sua sofisticação arquitetônica, 
 | Embeddings | text-embedding-3-small (OpenAI) ou all-MiniLM-L6-v2 (Sentence transformers - HuggingFace)  | O modelo text-embedding-3-small foi escolhido por sua alta qualidade semântica, sendo ideal para comparação precisa entre currículos e descrições de vagas. Como alternativa, o modelo all-MiniLM-L6-v2 pode ser utilizado por ser open-source, leve e executável localmente, reduzindo custos e dependência de APIs externas. A arquitetura do sistema permite a troca entre os modelos conforme necessidade de desempenho, custo ou escalabilidade. |
 | Banco de dados | Supabase (PostgreSQL) | Solução completa com banco, auth e storage |
 | Banco vetorial do RAG | Supabase (PostgreSQL) | Fácil integração com PostgreSQL e utilizado para armazenar embeddings de descrições reais de vagas previamente coletadas, permitindo busca semântica eficiente.|
+| Busca web para recursos | Tavily API | API de busca otimizada para LLMs, com integração nativa no LangChain.js. Utilizada pela tool buscar_recursos_educacionais para recuperar cursos, artigos e materiais de estudo atualizados. |
 | Autenticação |  NextAuth.js v5 | Integração simples com Next.js |
 | Armazenamento de Arquivos | Cloudflare R2 | Armazenamento de arquivos com baixo custo plano gratuito melhor que o supabase e sem cobrança de egress, ideal para PDFs de currículos |
 | Deploy | Vercel | Deploy rápido e integração nativa com Next.js |
@@ -58,10 +59,24 @@ O grande diferencial do NextStepAI reside na sua sofisticação arquitetônica, 
 
 
 
-[Link do Diagrama de Arquitetura (SVG) - Kroki.io/Mermaid JS](https://kroki.io/mermaid/svg/eNq1WNtuG0UYvs9TjIyQWrVOvOtjIkByYueAnKzrdcohrqLZnVl76GbHndlNClUlkApIiFNpxaECQUUh6gVCiAsQl_hN-gLwCPwz6-yuE2gSsfVF4p2d_5vvP_9jz-cH7giLEHV6cwg-zz-PXvwfnyOMtt3f6Fh2bpCuj6VsUQ9Fkgq14DHfX3rOoAY16WUZCn6dLj3nElLzKtPH4gEj4WjJHN-87HKfi-S1x4OweEDZcBQuOdwnswd4Al4nB9RKuOrh5ACDVkrY-88DYjqzeHuMoJSwV6mbTi3BWyRGvUKO4c1XjyOeQhmPWeYIXG84GcpVxzSSE89GmQt3lKHsOJ5ZSSmblVKJngsv5NxP8WqU1p16gleqVb3K-fj5_l7WpM6iWXZTfrhcMcxz4dE9h5IUj-BK4mPA8wyzvDiLZ5x00SwicVCGYZVSTFILGkaVVhfPxVCGXOAhTTSuG41qgtdoGOVy_Vx4gkehyqMze7h8zpCUVFt0eoBbcaoeSQ6oEbNBzmcAHIWZkITXDa-U4FXq1WrtaXjmYtmZy7O8bU3u5Vfbtu1278JO4e9v7z5C2zKaPBSMF65dXFpaUsUu5i0jZyjweIRWe9ZWX23-_Ie_fv8ErapqRQOCnrx9H23Rm-H8GxIZFfTnb6iPmX_A4BV8lyNM3GAhYoVrc2j6IUxQN2Q8QP3lZHF7Y6fQhUiTSqqF5cjhWJBBsM5kOPlVMJerFz2OyR4eo6uMHhSuAVFdNDUIcIkZb260Wp32K81e-9YtoHv_M7TJCPHpARZ0EEypFm7fBmkokce0bG7315WS9--iJkRqEDIXTw4n3_NET1geKV33q6eppLB2e9Z2v71TWIBSuaBiaWFnfn4-ABz1cG0QrHE-9KnSbY2F65Gjvq0IStTR2JdaSbV1VseUbxfs9uTBV8ol8B0MBKzljFP0ElrHAdhAyFP90O1YzdaUcDT2weCDYDPyQzZWzRrYXcU-I7FRYnZjlqq81ey89nqib4D9N98Co1viRkQhS6amBBDbbs8In9TM6q1oTxx-hxJxwoVWrYOD4coIs0B58jQvrLW3-jrKH32OujgceRCaVMRxrhpOslO7qner0OMhxXvgAD4IVnhAmAuQ2C-oiInrVyKyabXau00Ffu8OWuF7aCUSYvKTG_kguwaB2lQmkCz248xpWnRZiX78M7LprGiXCig4aINQOHdG9KSh-pbVsXXMHqI-NLxTLdI3NOG7CAJEYCZ2Q_jCd8fEGwTwpwiOllSfqvpnRkyzPXyMlC-iMBJY7BLwidx1gTqLmfcVFnLgPaTMe5-hl21rKxUg_F9wTU3-I-TyQEKgAaqDA5fv7lNoPpAEwGq4D2pw8S_CZa3LA-RE0gVJUDcSkstBQEnkYu25qfUTuZMmbL8Kle3Jl--oLLKp2GeTQy5R-ya4OuCn2nOtZ13ZKawJfkOlIPi920eWbSPDLOl0NszGdeSGNzULGCESwfYmWNQa06AJUsoJRT0QEBYMi-Wi3MO-jxbQejQcwsoqdiGTYKm4yQLW2Sx2asV9cxBcwL6iiUO2jy_qIzTIf2jaavZ1uH5xR-naUt47Tb2WdvunXyI7GmMHS4q6XIZDQe0rHXCN4BCpcdkWcXUG4xPuRiqDJLpw5LuYG3HSdNN-v_cjWvF5RDwfyjOsDYLlyL1OQ9QVoBDRxaLbWo1dOJ1GZnWz2-2WQvrwF_AdNH_bFWwcghvoUb2xWRBOHqtSjvYZRp3OJroEuoegCzDsTv5wfOgvwBV0C6hLpdSt8OIgiE8F1LlncEfRpWw1AmPJ3NBl-CZ0E92rpyOL4xHHo2e_SJTh3pGBUk0sGdcMr-otnnP6yUBBfzqCIupGRM96Vyg7pXqtkoFSzSEdm2mtgc96Tag3ytVSVkFdPpMbjFcmpbPeEEq1Cp1REMpIOsxTUsf4rJeDumsSw8xAqTw9glpc9Go0nZJLXr1We8o9qFyhFZxrvK52tl-1ULe3sbWy0W12cp0_UbH4UhyveimOXLWWjnHHpjp4iwpPvn4Xsh0SFdJ7f_JQTSQFLQZBdmL_POz_5kPdZGUsU0DzybF5WkplS254R7ZAhQ6HDgCtAP7D_DFVNJku52aHTf22tZyvXlOr5uJ1PWFqlr045KdTY6yWGtdy5W71rmxDxe01W1Z-vzRpmrEOemqcSwdI7TFoWWgsqIQeSGN_xaPi8X0qJmFvZsvUcekBukBl1l7Q-ILvjUOYsO4jOxQwrsYIahTJ1XhxdVSDXAvsZ0MMQs5e3Zi8n-NPbH0jGwz6CRUyc2SsGoyf0_fLesOJwTITPvFYqRdgxso-tqZP5WeRJb223bVsKNyXULfdszfs_uQDKJnN_KIuSRSIHLs94_q0hmbTKWcN1ayVG54Cm_FRstBa_gfJCXK-)
-
+[Link do Diagrama de Arquitetura (PNG) - Mermaid JS](https://github.com/Renan-Szimanski/NextStepAI/blob/main/docs/Etapa%201%20-%20Proposta%20do%20Projeto/mermaid-diagram-E1.png)
 
 **Legenda:**
+
+| Cor | Camada |
+|---|---|
+| 🟦 Azul | Frontend (Next.js 14, Tailwind, shadcn/ui) |
+| 💗 Rosa | Middleware (Proteção de rotas) |
+| 🔑 Cinza | Autenticação (NextAuth.js v5) |
+| 🟪 Roxo | API Routes (Next.js Route Handlers) |
+| 🟨 Amarelo | Orquestrador e Agente (LangChain.js) |
+| 🟩 Verde | Tools (Ferramentas do agente) |
+| 🟧 Laranja | Serviços Externos (Groq API, Embeddings, Tavily) |
+| 🩵 Teal | Banco de Dados (Supabase PostgreSQL, pgvector) |
+| 💼 Amarelo escuro | Base de Vagas (pgvector) |
+| 🩷 Rosa escuro | Storage (Cloudflare R2) |
+| 🟣 Lilás | Pipeline de Ingestão (Seed) |
+
 
 ### 2.3 Fluxo de uma interação típica
 
@@ -72,10 +87,15 @@ O grande diferencial do NextStepAI reside na sua sofisticação arquitetônica, 
     POST para /api/analyze com { cargo, arquivo? }.
 
 3.  API Route /api/analyze verifica presença do PDF:
-        a) Se houver PDF, o arquivo é armazenado em bucket privado no Cloudflare R2 e a tool extrair_texto_pdf obtém o texto do currículo.
+        a) Se houver PDF, o arquivo é armazenado em bucket privado no Cloudflare R2 e a tool extrair_texto_pdf obtém o texto do currículo. (Se houver PDF, após a extração do texto bruto, a tool estruturar_dados_curriculo converte o conteúdo em um JSON estruturado contendo competências técnicas, soft skills, certificações e tempo de experiência, otimizando o contexto enviado ao agente para o Gap Analysis.)
         b) Se não houver PDF, a análise segue apenas com o cargo-alvo e o contexto recuperado.
 
-4.  O orquestrador gera embeddings do cargo ou descrição da vaga-alvo e executa a tool consultar_banco_vetorial no Supabase com pgvector. O banco vetorial é previamente populado com descrições de vagas reais coletadas de plataformas públicas de emprego e bases abertas, permitindo a recuperação de requisitos de mercado semanticamente relevantes.
+4.  O orquestrador gera embeddings do cargo ou descrição da vaga-alvo e executa a tool consultar_banco_vetorial no Supabase com pgvector. O banco vetorial é previamente populado pelo script de seed (scripts/popular-banco.ts) que processa dois tipos de fonte:
+    
+    a) Descrições de vagas geradas sinteticamente via LLM, garantindo cobertura de cargos variados;
+    b) Datasets públicos de vagas obtidos de plataformas como Kaggle e HuggingFace.
+    
+    Os textos são divididos em chunks (RecursiveCharacterTextSplitter), convertidos em embeddings (text-embedding-3-small) e inseridos no pgvector, permitindo busca semântica em tempo de execução.
 
 5.  O agente Pathfinder recebe:
 
@@ -96,6 +116,35 @@ O grande diferencial do NextStepAI reside na sua sofisticação arquitetônica, 
 
 10. O roadmap final é persistido no Supabase, associado ao usuário autenticado, permitindo consulta no histórico.
 
+### 2.4 Estratégia de Chunking
+
+O pipeline de ingestão de dados (seed) utiliza o `RecursiveCharacterTextSplitter` do LangChain.js para dividir as descrições de vagas em fragmentos menores antes da geração de embeddings. A configuração adotada é:
+
+**Chunk Size — 512 tokens**
+
+Uma descrição típica de vaga contém entre 200 e 600 tokens. O valor de 512 permite que a maioria das vagas caiba inteiramente em um único chunk, preservando o contexto completo de requisitos, responsabilidades e competências. Valores menores (256) fragmentariam excessivamente as descrições, separando requisitos relacionados; valores maiores (1024) introduziriam ruído e reduziriam a precisão da busca semântica.
+
+**Chunk Overlap — 50 tokens (~10%)**
+
+A sobreposição entre chunks adjacentes evita perda de informação nas fronteiras de corte. O valor de 50 tokens (~10% do chunk size) é adequado para descrições de vagas, que são textos curtos e estruturados — a maioria cabe inteiramente em um único chunk, tornando o overlap uma salvaguarda para os poucos casos que excedem 512 tokens. A proporção de 10% minimiza redundância e custo de armazenamento de embeddings, sem comprometer a qualidade da busca semântica.
+
+**Separadores — `["\n\n", "\n", ". ", " "]`**
+
+O splitter tenta dividir primeiro por parágrafos (`\n\n`), depois por quebras de linha (`\n`), sentenças (`. `) e por último palavras (` `). Essa hierarquia respeita a estrutura semântica natural das descrições de vagas, que geralmente são organizadas em seções como requisitos, responsabilidades e diferenciais.
+
+**Splitter — `RecursiveCharacterTextSplitter`**
+
+Escolhido por ser o splitter padrão do LangChain.js, que divide recursivamente o texto tentando manter unidades semânticas coesas. Diferente de um split fixo por caracteres, ele prioriza quebras naturais do texto antes de recorrer a cortes arbitrários.
+
+**Resumo da configuração:**
+
+| Parâmetro | Valor |
+|---|---|
+| Chunk Size | 512 tokens |
+| Chunk Overlap | 50 tokens (~10%) |
+| Separadores | `["\n\n", "\n", ". ", " "]` |
+| Splitter | `RecursiveCharacterTextSplitter` |
+
 ---
 
 ## 3. Design dos Agentes
@@ -105,7 +154,7 @@ O grande diferencial do NextStepAI reside na sua sofisticação arquitetônica, 
 | Campo | Descrição |
 |-------|-----------|
 | Papel / responsabilidade | Interpretar a vaga-alvo, analisar requisitos de mercado via RAG e produzir tanto o diagnóstico quanto o roadmap final. Se houver currículo, realiza gap analysis. Se não houver currículo, constrói o perfil ideal e gera um plano de desenvolvimento correspondente.  |
-| Ferramentas (tools) disponíveis | extrair_texto_pdf — extrai texto bruto de arquivos PDF enviados pelo usuário; consultar_banco_vetorial — executa busca semântica no pgvector para recuperar requisitos reais de vagas similares; buscar_recursos_educacionais — recupera referências de estudo, tipos de recurso ou conteúdos relevantes para as competências mapeadas na web; estruturar_dados_curriculo - Converte o texto bruto extraído do PDF em um JSON estruturado contendo competências técnicas, soft skills, certificações e tempo de experiência. Isso evita que o agente se perca em textos longos e foque nos dados frios para o Gap Analysis. |
+| Ferramentas (tools) disponíveis | extrair_texto_pdf — extrai texto bruto de arquivos PDF enviados pelo usuário; consultar_banco_vetorial — executa busca semântica no pgvector para recuperar requisitos reais de vagas similares; buscar_recursos_educacionais — utiliza a Tavily API para buscar na web referências de estudo, cursos, artigos e conteúdos relevantes para as competências mapeadas, além de consultar recursos já indexados no banco interno.; estruturar_dados_curriculo - Converte o texto bruto extraído do PDF em um JSON estruturado contendo competências técnicas, soft skills, certificações e tempo de experiência. Isso evita que o agente se perca em textos longos e foque nos dados frios para o Gap Analysis. |
 | Técnica avançada aplicada | RAG + roteamento condicional baseado na presença ou ausência de currículo |
 | Estratégia de Memória | ConversationSummaryBufferMemory (LangChain) — mantém resumo acumulativo dos pontos-chave da conversa, limitando tokens enviados ao LLM enquanto preserva contexto relevante. |
 | Formato de saída | Markdown estruturado com diagnóstico, competências, lacunas ou perfil ideal, roadmap, recursos e próximos passos. |
@@ -197,6 +246,9 @@ Diretrizes adicionais:
 | 21 | Usabilidade — fluxo principal em ≤ 3 cliques | RNF — Usabilidade | **Dado** que o usuário está no dashboard, **quando** deseja gerar um roadmap, **então** completa o fluxo principal em no máximo 3 interações. | Média |
 | 22 | Manutenibilidade — código modular e documentado | RNF — Manutenibilidade | **Dado** que um desenvolvedor acessa o repositório, **quando** lê o README, **então** encontra instruções claras e código organizado em módulos com responsabilidades definidas. | Média |
 | 23 | Armazenamento seguro de currículos | RNF — Segurança | **Dado** que o usuário envia um currículo PDF, **quando** o arquivo é salvo no Cloudflare R2, **então** permanece em bucket privado acessível apenas pelo backend autenticado. | Média |
+| 24 | Pipeline de ingestão de dados para RAG (Seed) | RF09 | **Dado** que o banco vetorial está vazio ou desatualizado, **quando** o script popular-banco.ts é executado, **então** descrições de vagas (geradas sinteticamente via LLM e coletadas de datasets públicos) processadas em chunks, convertidas em embeddings e inseridas no pgvector do Supabase, com no mínimo 50 vagas cobrindo pelo menos 10 áreas profissionais distintas. | Alta |
+| 25 | Estruturação automática de currículo | RF07 | **Dado** que o texto bruto do PDF foi extraído, **quando** a tool estruturar_dados_curriculo é invocada, **então** retorna um JSON com competências técnicas, soft skills, certificações e tempo de experiência. | Alta |
+
 
 ---
 
@@ -224,93 +276,123 @@ Diretrizes adicionais:
 
 ## 5. Estrutura de Diretórios Planejada
 
-> Mostre como o repositório será organizado. Inclua separação entre frontend, backend/API e módulos de agentes.
 
 ```
 nextstep-ai/
 ├── src/
-│   ├── app/                        # Next.js App Router (Páginas, Layouts e API)
-│   │   ├── (auth)/                 # Grupo de rotas de autenticação
-│   │   │   ├── layout.tsx          # Layout de auth (tela centralizada, sem sidebar)
+│   ├── app/                           # Next.js App Router (Páginas, Layouts e API)
+│   │   ├── (auth)/                    # Grupo de rotas de autenticação
+│   │   │   ├── layout.tsx             # Layout de auth (tela centralizada, sem sidebar)
 │   │   │   ├── login/
-│   │   │   │   └── page.tsx        # Página de login (e-mail/senha + OAuth)
+│   │   │   │   └── page.tsx           # Página de login (e-mail/senha + OAuth)
 │   │   │   └── cadastro/
-│   │   │       └── page.tsx        # Página de cadastro de novo usuário
+│   │   │       └── page.tsx           # Página de cadastro de novo usuário
 │   │   │
-│   │   ├── (dashboard)/            # Grupo de rotas da área logada
-│   │   │   ├── layout.tsx          # Layout com sidebar e header autenticado
+│   │   ├── (dashboard)/               # Grupo de rotas da área logada
+│   │   │   ├── layout.tsx             # Layout com sidebar e header autenticado
 │   │   │   ├── painel/
-│   │   │   │   └── page.tsx        # Dashboard: formulário de nova análise
+│   │   │   │   └── page.tsx           # Dashboard: formulário de nova análise
 │   │   │   ├── analise/
-│   │   │   │   └── page.tsx        # Streaming da resposta do agente em tempo real
+│   │   │   │   └── page.tsx           # Streaming da resposta do agente em tempo real
 │   │   │   └── meus-planos/
-│   │   │       ├── page.tsx        # Listagem de planos/roadmaps salvos
+│   │   │       ├── page.tsx           # Listagem de planos/roadmaps salvos
 │   │   │       └── [id]/
-│   │   │           └── page.tsx    # Detalhe e retomada de um plano específico
+│   │   │           └── page.tsx       # Detalhe e retomada de um plano específico
 │   │   │
-│   │   ├── api/                    # Route Handlers (BFF - Backend for Frontend)
+│   │   ├── api/                       # Route Handlers (BFF - Backend for Frontend)
 │   │   │   ├── analisar/
-│   │   │   │   └── route.ts       # POST: recebe vaga/PDF, orquestra o agente, retorna streaming
+│   │   │   │   └── route.ts          # POST: recebe vaga/PDF, orquestra o agente, retorna streaming
 │   │   │   ├── planos/
-│   │   │   │   ├── route.ts       # GET: lista planos do usuário autenticado
+│   │   │   │   ├── route.ts          # GET: lista planos do usuário autenticado
 │   │   │   │   └── [id]/
-│   │   │   │       └── route.ts   # GET: retorna um plano com mensagens associadas
+│   │   │   │       └── route.ts      # GET: retorna um plano com mensagens associadas
 │   │   │   ├── mensagens/
-│   │   │   │   └── route.ts       # POST: envia follow-up e retorna resposta via streaming
+│   │   │   │   └── route.ts          # POST: envia follow-up e retorna resposta via streaming
 │   │   │   └── auth/
 │   │   │       └── [...nextauth]/
-│   │   │           └── route.ts   # Endpoints automáticos do NextAuth.js
+│   │   │           └── route.ts      # Endpoints automáticos do NextAuth.js
 │   │   │
-│   │   ├── layout.tsx              # Layout raiz (Providers globais, fontes, meta tags)
-│   │   ├── page.tsx                # Landing page pública de apresentação
-│   │   └── globals.css             # Estilos globais (Tailwind + shadcn/ui + Markdown)
+│   │   ├── layout.tsx                 # Layout raiz (Providers globais, fontes, meta tags)
+│   │   ├── page.tsx                   # Landing page pública de apresentação
+│   │   └── globals.css                # Estilos globais (Tailwind + shadcn/ui + Markdown)
 │   │
-│   ├── middleware.ts               # Proteção de rotas: redireciona para /login se não autenticado
+│   ├── middleware.ts                  # Proteção de rotas: redireciona para /login se não autenticado
 │   │
-│   ├── componentes/                # Componentes React reutilizáveis
-│   │   ├── ui/                     # Componentes genéricos do shadcn/ui (botões, inputs, cards)
-│   │   ├── formularios/            # Formulários do domínio (análise, login, upload de PDF)
-│   │   └── layout/                 # Estrutura visual (Navbar, Sidebar, Footer)
+│   ├── componentes/                   # Componentes React reutilizáveis
+│   │   ├── ui/                        # Componentes genéricos do shadcn/ui (botões, inputs, cards)
+│   │   ├── formularios/               # Formulários do domínio (análise, login, upload de PDF)
+│   │   ├── roadmap/                   # Componentes de exibição do plano gerado
+│   │   │                              # (StreamingResponse, RoadmapCard, MarkdownRenderer)
+│   │   └── layout/                    # Estrutura visual (Navbar, Sidebar, Footer)
 │   │
-│   ├── agentes/                    # Coração da aplicação: lógica de IA e orquestração
-│   │   ├── fluxo-analise.ts        # Roteamento condicional (com/sem currículo) e montagem de contexto
-│   │   ├── pathfinder.ts           # Configuração do agente: LLM (Groq), system prompt e memória
-│   │   └── ferramentas/            # Tools independentes (Function Calling) do agente
-│   │       ├── extrair-pdf.ts      # Tool: extração de texto bruto do PDF via Cloudflare R2
-│   │       ├── estruturar-dados.ts # Tool: converte texto do currículo em JSON estruturado
-│   │       ├── buscar-vetor.ts     # Tool: busca semântica de vagas no pgvector (RAG)
-│   │       └── buscar-recursos.ts  # Tool: busca de materiais de estudo complementares
+│   ├── agentes/                       # Coração da aplicação: lógica de IA e orquestração
+│   │   ├── orquestrador.ts           # Roteamento condicional (com/sem currículo) e montagem de contexto
+│   │   ├── pathfinder.ts              # Configuração do agente: LLM (Groq), system prompt e memória
+│   │   └── ferramentas/               # Tools independentes (Function Calling) do agente
+│   │       ├── extrair-pdf.ts         # Tool: extração de texto bruto do PDF via Cloudflare R2
+│   │       ├── estruturar-dados.ts    # Tool: converte texto do currículo em JSON estruturado
+│   │       ├── buscar-vetor.ts        # Tool: busca semântica de vagas no pgvector (RAG)
+│   │       └── buscar-recursos.ts     # Tool: busca de materiais de estudo via Tavily API + DB interno
 │   │
-│   ├── lib/                        # Utilitários, configurações e integrações externas
-│   │   ├── supabase/               # Cliente Supabase e funções de acesso ao banco (queries)
-│   │   ├── cloudflare/             # Configuração do R2 para upload seguro de currículos
-│   │   ├── auth.ts                 # Configuração central do NextAuth.js (provedores, callbacks)
-│   │   └── utils.ts                # Funções auxiliares (formatação, classes, helpers gerais)
+│   ├── lib/                           # Utilitários, configurações e integrações externas
+│   │   ├── supabase/                  # Cliente Supabase e funções de acesso ao banco
+│   │   │   ├── client.ts             # Cliente para browser (Client Components) — usa ANON_KEY
+│   │   │   └── server.ts             # Cliente para servidor (API Routes) — usa SERVICE_ROLE_KEY
+│   │   ├── cloudflare/                # Configuração do R2 para upload seguro de currículos
+│   │   │   └── r2.ts                 # Cliente S3-compatible: credenciais, bucket, upload/download
+│   │   ├── langchain/                 # Configurações centralizadas do LangChain.js
+│   │   │   ├── llm.ts               # Inicialização do LLM via Groq (GPT OSS 120B 128k)
+│   │   │   ├── embeddings.ts        # Inicialização do modelo de embeddings (OpenAI / HuggingFace)
+│   │   │   └── vector-store.ts      # Conexão com pgvector no Supabase para busca semântica
+│   │   ├── tavily/                    # Integração com Tavily API para busca web
+│   │   │   └── client.ts            # Configuração do cliente Tavily (API key, parâmetros)
+│   │   ├── auth.ts                    # Configuração central do NextAuth.js (provedores, callbacks)
+│   │   └── utils.ts                   # Funções auxiliares (formatação, classes, helpers gerais)
 │   │
-│   └── tipos/                      # Tipagem estática do TypeScript
-│       └── index.ts                # Interfaces globais (Usuario, PlanoGerado, Mensagem, Vaga)
+│   └── tipos/                         # Tipagem estática do TypeScript
+│       ├── index.ts                   # Interfaces globais (Usuario, PlanoGerado, Mensagem)
+│       ├── agente.ts                  # Tipos de entrada/saída do agente (AnalysisInput, ToolResponse)
+│       └── vaga.ts                    # Interface da estrutura de vagas (Vaga, RequisitoVaga)
 │
-├── dados/
-│   └── vagas/                      # Base de dados usada para alimentar o RAG
+├── dados/                             # Base de dados usada para alimentar o RAG
+│   └── vagas/                         # Descrições de vagas para popular o banco vetorial
+│       ├── sinteticas/                # Geradas via LLM (Groq) durante o processo de seed
+│       │   └── *.json                # JSONs com descrições, requisitos e competências
+│       └── datasets/                  # Coletadas de fontes públicas (Kaggle, HuggingFace)
+│           └── *.json                # JSONs normalizados no mesmo formato das sintéticas
 │
-├── scripts/
-│   └── popular-banco.ts            # Seed: lê JSONs de vagas, gera embeddings, popula pgvector
+├── scripts/                           # Scripts utilitários executados offline
+│   └── popular-banco.ts               # Seed: lê JSONs de vagas, faz chunking, gera embeddings,
+│                                      # popula pgvector no Supabase
 │
-├── supabase/
-│   └── migrations/                 # Scripts SQL versionados (tabelas, pgvector, índices)
+├── supabase/                          # Configuração local do Supabase (CLI)
+│   ├── migrations/                    # Scripts SQL versionados e sequenciais
+│   │   ├── 001_criar_profiles.sql    # Tabela de perfis de usuário
+│   │   ├── 002_criar_roadmaps.sql    # Tabela de roadmaps gerados
+│   │   ├── 003_criar_mensagens.sql   # Tabela de mensagens (histórico de conversa)
+│   │   ├── 004_habilitar_pgvector.sql # Extensão pgvector + tabela documents
+│   │   └── 005_criar_vagas.sql       # Tabela de vagas com coluna embedding
+│   └── config.toml                    # Configuração do ambiente local do Supabase
 │
-├── docs/
-│   
+├── docs/                              # Documentação técnica e acadêmica
 │
-├── public/                         # Arquivos estáticos (logo, favicon)
-├── .env.example                    # Template de variáveis de ambiente (sem valores reais)
-├── next.config.mjs                 # Configurações de build do Next.js
-├── tailwind.config.ts              # Design system (cores, fontes, breakpoints)
-├── tsconfig.json                   # Regras de compilação TypeScript
-└── README.md                       # Guia de instalação e execução
+├── public/                            # Arquivos estáticos (logo, favicon, og-image)
+│
+├── .env.example                       # Template de variáveis de ambiente (sem valores reais)
+│                                      # GROQ_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY,
+│                                      # SUPABASE_SERVICE_ROLE_KEY, R2_ACCESS_KEY_ID,
+│                                      # R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, R2_ENDPOINT,
+│                                      # NEXTAUTH_SECRET, NEXTAUTH_URL, OPENAI_API_KEY,
+│                                      # TAVILY_API_KEY, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
+│                                      # GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET
+│
+├── middleware.ts                       # (re-export de src/middleware.ts para Next.js)
+├── next.config.mjs                    # Configurações de build do Next.js
+├── tailwind.config.ts                 # Design system (cores, fontes, breakpoints, shadcn/ui)
+├── tsconfig.json                      # Regras de compilação TypeScript (paths: @/ → src/)
+├── package.json                       # Dependências, scripts (dev, build, seed, db:push)
+└── README.md                          # Guia de instalação, setup local e arquitetura resumida
 ```
-
-> Ajuste a estrutura acima conforme sua stack. Justifique desvios relevantes.
 
 ---
 
