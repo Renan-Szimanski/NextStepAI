@@ -427,8 +427,8 @@ nextstep-ai/
 │   │   ├── 001_criar_profiles.sql    # Tabela de perfis de usuário
 │   │   ├── 002_criar_roadmaps.sql    # Tabela de roadmaps gerados
 │   │   ├── 003_criar_mensagens.sql   # Tabela de mensagens (histórico de conversa)
-├── 004_habilitar_pgvector.sql        # Habilita extensão pgvector no PostgreSQL
-├── 005_criar_vagas.sql               # Tabela de vagas com coluna embedding e função match_vagas
+│   │   ├── 004_habilitar_pgvector.sql        # Habilita extensão pgvector no PostgreSQL
+│   │   ├── 005_criar_vagas.sql               # Tabela de vagas com coluna embedding e função match_vagas
 │   └── config.toml                    # Configuração do ambiente local do Supabase
 │
 ├── docs/                              # Documentação técnica e acadêmica
