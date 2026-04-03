@@ -60,7 +60,7 @@ O grande diferencial do NextStepAI reside na sua sofisticação arquitetônica, 
 
 
 
-[Link do Diagrama de Arquitetura (PNG) - Mermaid JS](https://github.com/Renan-Szimanski/NextStepAI/blob/main/docs/Etapa%201%20-%20Proposta%20do%20Projeto/mermaid-diagram-E1.png)
+[Link do Diagrama de Arquitetura (PNG) - Mermaid JS](https://github.com/Renan-Szimanski/NextStepAI/blob/main/docs/Etapa%201%20-%20Proposta%20do%20Projeto/E1_NextStepAI_VeteranosCC_Diagrama.png)
 
 **Legenda:**
 
