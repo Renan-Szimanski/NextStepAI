@@ -247,9 +247,9 @@ Formato obrigatório de saída (primeira análise):
 - Competências comportamentais
 - Lacunas prioritárias (se houver currículo)
 - Nível de prontidão atual
-- Roadmap de curto prazo (0–3 meses)
-- Roadmap de médio prazo (3–6 meses)
-- Roadmap de longo prazo (6–12 meses)
+- Roadmap de curto prazo
+- Roadmap de médio prazo
+- Roadmap de longo prazo
 - Projetos práticos recomendados
 - Recursos de aprendizagem
 - Indicadores de progresso
