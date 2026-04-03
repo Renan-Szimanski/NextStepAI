@@ -95,12 +95,14 @@ O grande diferencial do NextStepAI reside na sua sofisticação arquitetônica, 
 
 4.  O orquestrador verifica a presença do PDF e aplica roteamento 
     condicional:
+    
     a) Se houver `fileKey`, a tool `extrair_texto_pdf` obtém o texto 
        bruto do currículo via Cloudflare R2. Em seguida, a tool 
        `estruturar_dados_curriculo` converte o texto em um JSON 
        estruturado contendo competências técnicas, soft skills, 
        certificações e tempo de experiência.
-    b) Se não houver PDF, a análise segue apenas com o cargo-alvo e 
+       
+       b) Se não houver PDF, a análise segue apenas com o cargo-alvo e 
        o contexto recuperado por RAG.
 
 5.  A tool `consultar_banco_vetorial` gera embeddings do cargo-alvo, 
@@ -113,8 +115,10 @@ O grande diferencial do NextStepAI reside na sua sofisticação arquitetônica, 
     - dados estruturados do currículo em JSON (se disponível).
 
 7.  O Pathfinder aplica o roteamento condicional:
+
     a) com currículo → executa Gap Analysis entre o perfil do 
        usuário e os requisitos de mercado;
+
     b) sem currículo → constrói o Perfil Ideal da vaga-alvo.
 
 8.  O agente organiza a saída em diagnóstico e roadmap de curto 
