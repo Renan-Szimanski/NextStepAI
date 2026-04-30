@@ -355,17 +355,28 @@ function criarLlm(): ChatGroq {
 const PROMPT_TEMPLATE = (area: string, cargo: string): string => `
 Você é um recrutador experiente. Gere uma descrição de vaga REALISTA e DETALHADA para o cargo "${cargo}" na área de ${area}, no mercado brasileiro.
 
-Inclua:
-- Título da vaga
+ESTRUTURA OBRIGATÓRIA (mantenha esta ordem exata):
+- Título da vaga (primeira linha, em MAIÚSCULAS)
 - 2 parágrafos de visão geral da empresa e do papel
-- Seção "Responsabilidades" com 5-7 bullets
-- Seção "Requisitos" com 5-7 bullets (hard skills específicas)
-- Seção "Diferenciais" com 3-4 bullets
-- Seção "Soft skills esperadas" com 3-4 bullets
+- Seção "RESPONSABILIDADES:" com 5-7 bullets
+- Seção "REQUISITOS:" com 5-7 bullets (hard skills específicas: tecnologias, frameworks, ferramentas)
+- Seção "DIFERENCIAIS:" com 3-4 bullets
+- Seção "SOFT SKILLS ESPERADAS:" com 3-4 bullets
 
-Use linguagem profissional em português brasileiro. Não invente nomes de empresas reais. Seja específico em tecnologias, frameworks e ferramentas.
+REGRAS DE FORMATAÇÃO (SIGA RIGOROSAMENTE):
+- TEXTO PLANO somente. NÃO use markdown.
+- NÃO use ** para negrito (proibido).
+- NÃO use # para títulos (proibido).
+- NÃO use crases para código (proibido).
+- NÃO use [texto](link) (proibido).
+- Títulos de seção devem ser EM MAIÚSCULAS seguidas de dois pontos. Exemplo correto: "RESPONSABILIDADES:"
+- Para bullets, use o caractere asterisco simples seguido de espaço, no início da linha. Exemplo: "* Desenvolver pipelines"
+- Separe seções com uma linha em branco.
 
-Retorne APENAS a descrição em texto puro, sem markdown.
+LINGUAGEM:
+- Português brasileiro profissional.
+- Não invente nomes de empresas reais.
+- Seja específico em tecnologias, frameworks e ferramentas (ex: "Apache Airflow", "PostgreSQL", "Docker").
 `.trim();
 
 async function gerarVaga(

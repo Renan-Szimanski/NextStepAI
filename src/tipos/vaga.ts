@@ -6,7 +6,9 @@ export interface Vaga {
   titulo: string;
   area: string;
   descricao: string;
-  chunkIndex?: number;
+  origem: 'real' | 'sintetica'; // ← novo
+  embedding?: number[];
+  criado_em?: string;
 }
 
 /**
