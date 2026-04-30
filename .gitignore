@@ -41,3 +41,7 @@ next-env.d.ts
 
 # NextStepAI - Dados sintéticos locais
 /dados/vagas/sinteticas/*.json
+
+# Cache e arquivos temporários do Supabase CLI
+supabase/.temp/
+supabase/.branches/
