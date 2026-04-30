@@ -1,60 +1,82 @@
-import { createReactAgent } from '@langchain/langgraph/prebuilt';
+import { createAgent } from 'langchain';
 import { criarLLM } from '@/lib/langchain/llm';
 import { consultarBancoVetorial } from '@/agentes/ferramentas/buscar-vetor';
 import { SYSTEM_PROMPT_PATHFINDER } from '@/agentes/prompts/pathfinder-system';
-import { 
-  HumanMessage, 
-  AIMessage, 
-  SystemMessage, 
-  BaseMessage 
+import {
+  HumanMessage,
+  AIMessage,
+  type BaseMessage,
 } from '@langchain/core/messages';
-import { Mensagem } from '@/tipos/agente'; // Ajuste o caminho se necessário
+import type { Mensagem } from '@/tipos';
+
+const PREFIXO_LOG = '[Pathfinder]';
 
 /**
- * Cria a instância do agente Pathfinder.
- * O LangGraph utiliza a estrutura ReAct para decidir quando chamar tools.
- * * @param usarFallback - Se true, utiliza o modelo menor para economizar custos/rate limits.
- * @returns Instância configurada do agente.
+ * Cria a instância do agente Pathfinder usando `createAgent` do LangChain v1.
+ * Substitui o `createReactAgent` deprecated do `@langchain/langgraph/prebuilt`.
+ *
+ * @param usarFallback - Se true, utiliza o modelo menor (rate limit / custos).
+ * @returns Instância compilada do agente.
  */
 export function criarAgentePathfinder(usarFallback: boolean = false) {
   const llm = criarLLM(usarFallback ? 'fallback' : 'principal');
-  
-  // Define as ferramentas disponíveis para o agente
   const tools = [consultarBancoVetorial];
 
-  // Cria o agente configurado com o System Prompt (stateModifier)
-  return createReactAgent({
-    llm,
+  return createAgent({
+    model: llm,
     tools,
-    stateModifier: SYSTEM_PROMPT_PATHFINDER,
+    systemPrompt: SYSTEM_PROMPT_PATHFINDER,
   });
 }
 
 /**
  * Converte as mensagens da nossa interface (Frontend) para o formato do LangChain.
- * Filtra mensagens de tool, pois o LangGraph gerencia o ciclo de vida das tools internamente.
- * * @param mensagens - Array de mensagens recebidas do banco de dados/frontend.
+ *
+ * Mapeamento:
+ * - 'user'      → HumanMessage
+ * - 'assistant' → AIMessage
+ * - 'tool'      → ignorada (LangGraph reconstrói o ciclo de tools internamente)
+ * - 'system'    → ignorada (já fornecida via `systemPrompt` do createAgent)
+ *
+ * Mensagens com conteúdo vazio também são ignoradas para não poluir o contexto.
+ *
+ * @param mensagens - Array de mensagens vindas do frontend/banco.
  * @returns Array formatado de mensagens para o LangChain.
  */
-export function converterMensagensParaLangChain(mensagens: Mensagem[]): BaseMessage[] {
-  // Prepara o array com o System Prompt como a primeira mensagem (se necessário, 
-  // embora o stateModifier já o faça no createReactAgent)
+export function converterMensagensParaLangChain(
+  mensagens: Mensagem[],
+): BaseMessage[] {
   const formatadas: BaseMessage[] = [];
 
   for (const msg of mensagens) {
-    switch (msg.role) {
+    if (!msg.conteudo || msg.conteudo.trim().length === 0) {
+      continue;
+    }
+
+    switch (msg.papel) {
       case 'user':
-        formatadas.push(new HumanMessage(msg.content));
+        formatadas.push(new HumanMessage(msg.conteudo));
         break;
-      case 'ai':
-        formatadas.push(new AIMessage(msg.content));
+
+      case 'assistant':
+        formatadas.push(new AIMessage(msg.conteudo));
         break;
+
       case 'tool':
-        // O LangGraph gerencia chamadas de tools automaticamente.
-        // Ignoramos mensagens de 'tool' vindo do histórico salvo.
+        // LangGraph gerencia o ciclo de tools internamente; ignorar do histórico.
         break;
-      default:
-        console.warn(`[Pathfinder] Papel desconhecido ignorado: ${msg.role}`);
+
+      case 'system':
+        // System prompt já é injetado via `systemPrompt` do createAgent.
+        break;
+
+      default: {
+        const _exhaustiveCheck: never = msg.papel;
+        console.warn(
+          `${PREFIXO_LOG} Papel desconhecido ignorado: ${String(_exhaustiveCheck)}`,
+        );
+        break;
+      }
     }
   }
 

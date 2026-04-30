@@ -1,39 +1,63 @@
-import { ChatGroq } from "@langchain/groq";
-import { BaseMessage } from "@langchain/core/messages";
+import { ChatGroq } from '@langchain/groq';
 
-if (!process.env.GROQ_API_KEY) {
-  throw new Error("[LangChain] Falta a variável GROQ_API_KEY");
-}
+const PREFIXO_LOG = '[LangChain]';
 
 /**
- * Cria a instância do LLM baseada na estratégia (principal ou fallback).
+ * Estratégia de seleção do modelo:
+ * - `principal`: modelo maior, melhor qualidade.
+ * - `fallback`:  modelo menor/mais rápido, usado em caso de rate limit ou falha.
  */
-export function criarLLM(modelo: 'principal' | 'fallback' = 'principal'): ChatGroq {
-  const modelName = modelo === 'principal' ? 'llama3-70b-8192' : 'llama3-8b-8192'; 
-  // Nota: Substitua pelos IDs exatos de modelo suportados pela sua conta Groq, se necessário.
-  
-  console.log(`[LangChain] Inicializando LLM: ${modelo} (${modelName})`);
+export type EstrategiaLLM = 'principal' | 'fallback';
+
+/**
+ * IDs dos modelos Groq usados pelo MVP do NextStepAI.
+ * ⚠️ Validar disponibilidade no plano da conta Groq antes do deploy:
+ *    https://console.groq.com/docs/models
+ */
+const MODELO_PRINCIPAL = 'llama-3.1-8b-instant';
+const MODELO_FALLBACK = 'openai/gpt-oss-20b';
+
+const CONFIG_LLM = {
+ // temperatura: 0.4,
+ // maxTokensSaida: 4096,
+ // timeoutMs: 30_000,
+ //maxRetries: 2,
+  temperatura: 0.4,
+  maxTokensSaida: 2048,
+  timeoutMs: 30_000,
+  maxRetries: 2,
+} as const;
+
+/**
+ * Cria uma instância configurada do LLM Groq.
+ *
+ * A validação da `GROQ_API_KEY` é feita dentro da função (não no escopo do módulo)
+ * para evitar quebrar o build do Next.js quando a env var não está presente.
+ *
+ * @param estrategia - 'principal' (padrão) ou 'fallback'.
+ * @returns Instância de ChatGroq pronta para uso.
+ * @throws Error se `GROQ_API_KEY` não estiver definida no ambiente.
+ */
+export function criarLLM(estrategia: EstrategiaLLM = 'principal'): ChatGroq {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      `${PREFIXO_LOG} Variável de ambiente GROQ_API_KEY não definida.`,
+    );
+  }
+
+  const modelName =
+    estrategia === 'principal' ? MODELO_PRINCIPAL : MODELO_FALLBACK;
+
+  console.log(`${PREFIXO_LOG} Inicializando LLM: ${estrategia} (${modelName})`);
 
   return new ChatGroq({
-    apiKey: process.env.GROQ_API_KEY,
+    apiKey,
     model: modelName,
-    temperature: 0.4,
+    temperature: CONFIG_LLM.temperatura,
     streaming: true,
-    maxTokens: 2048,
+    maxTokens: CONFIG_LLM.maxTokensSaida,
+    timeout: CONFIG_LLM.timeoutMs,
+    maxRetries: CONFIG_LLM.maxRetries,
   });
-}
-
-/**
- * Tenta invocar o LLM principal e, em caso de erro, usa o fallback.
- */
-export async function invocarComFallback(messages: BaseMessage[]) {
-  const llmPrincipal = criarLLM('principal');
-  const llmFallback = criarLLM('fallback');
-
-  try {
-    return await llmPrincipal.invoke(messages);
-  } catch (error) {
-    console.error("[LangChain] Erro no LLM principal, tentando fallback...", error);
-    return await llmFallback.invoke(messages);
-  }
 }
