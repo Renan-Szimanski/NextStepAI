@@ -8,12 +8,20 @@
     "start": "next start",
     "lint": "next lint",
     "gerar-vagas": "tsx scripts/gerar-vagas-sinteticas.ts",
+
+     "popular-banco": "tsx -r tsconfig-paths/register --env-file=.env.local scripts/popular-banco.ts",
+    "popular-banco:clean": "tsx -r tsconfig-paths/register --env-file=.env.local scripts/popular-banco.ts --clean --yes",
+    "popular-banco:test": "tsx -r tsconfig-paths/register --env-file=.env.local scripts/popular-banco.ts --clean --yes --limit=5",
+
     "seed": "tsx scripts/popular-banco.ts",
+    "seed:clean": "npm run popular-banco:clean",
+    "seed:test": "npm run popular-banco:test",
+
     "testar-agente": "tsx -r tsconfig-paths/register --env-file=.env.local scripts/testar-agente.ts",
     "testar-rag": "tsx -r tsconfig-paths/register --env-file=.env.local scripts/testar-rag.ts",
-    "popular-banco": "tsx -r tsconfig-paths/register --env-file=.env.local scripts/popular-banco.ts",
     "testar-embeddings": "tsx -r tsconfig-paths/register --env-file=.env.local scripts/testar-embeddings.ts"
   },
+
   "dependencies": {
     "@huggingface/inference": "^4.13.15",
     "@langchain/community": "^1.1.27",
