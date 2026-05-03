@@ -46,7 +46,7 @@ export function MessageBubble({ mensagem }: MessageBubbleProps) {
           className={cn(
             'rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm',
             ehAssistant
-              ? 'rounded-tl-sm bg-muted text-foreground'
+              ? 'rounded-tl-sm bg-muted text-slate-800' // <-- Corrigido para cinza escuro
               : 'rounded-tr-sm bg-blue-600 text-white',
           )}
         >
@@ -63,7 +63,8 @@ export function MessageBubble({ mensagem }: MessageBubbleProps) {
               ehAssistant ? 'text-muted-foreground' : 'text-blue-200',
             )}
           >
-            {mensagem.criadoEm.toLocaleTimeString('pt-BR', {
+            {/* Rede de segurança: Se tiver timestamp usa ele, senão usa a hora atual */}
+            {(mensagem.timestamp ? new Date(mensagem.timestamp) : new Date()).toLocaleTimeString('pt-BR', {
               hour: '2-digit',
               minute: '2-digit',
             })}

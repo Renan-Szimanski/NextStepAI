@@ -10,7 +10,7 @@ const CONFIG_BUSCA = {
   // queryMinimaCaracteres: 3,
   // maxCaracteresDescricao: 800,
   topKPadrao: 3,                // 👈 era 5 → vira 3
-  thresholdPadrao: 0.4,         // 👈 era 0.5/0.7 → 0.4 calibrado para o MiniLM
+  thresholdPadrao: 0.5,         // 👈 era 0.5/0.7 → 0.4 calibrado para o MiniLM
   queryMinimaCaracteres: 3,
   maxCaracteresDescricao: 400,  // 👈 era 800 → vira 400
 } as const;
