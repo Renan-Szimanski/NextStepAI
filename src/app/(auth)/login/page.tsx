@@ -6,8 +6,7 @@ import BotaoLoginGitHub from "@/componentes/auth/BotaoLoginGitHub";
 export default async function LoginPage() {
   const session = await auth();
 
-  // Proteção: se já tiver sessão, vai direto pro MVP
-  if (session) {
+  if (session?.user) {
     redirect("/chat");
   }
 
