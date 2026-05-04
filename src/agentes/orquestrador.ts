@@ -120,7 +120,7 @@ async function* executarAgente(
   messages: Mensagem[],
 ): AsyncGenerator<EventoStreamSSE> {
   const agente = criarAgentePathfinder(usarFallback);
-  const langChainMessages = converterMensagensParaLangChain(messages);
+  const langChainMessages = await converterMensagensParaLangChain(messages);
   const input = { messages: langChainMessages };
 
   console.log(`${PREFIXO} Executando agente (fallback=${usarFallback})`);
