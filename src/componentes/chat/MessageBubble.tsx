@@ -11,6 +11,7 @@ interface MessageBubbleProps {
 
 export function MessageBubble({ mensagem }: MessageBubbleProps) {
   const ehAssistant = mensagem.papel === 'assistant'
+  const conteudoVazio = !mensagem.conteudo || mensagem.conteudo.trim() === ''
 
   return (
     <div
@@ -44,16 +45,21 @@ export function MessageBubble({ mensagem }: MessageBubbleProps) {
         {/* Bolha */}
         <div
           className={cn(
-            'rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm',
+            'rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm transition-all',
             ehAssistant
-              ? 'rounded-tl-sm bg-muted text-slate-800' // <-- Corrigido para cinza escuro
+              ? 'rounded-tl-sm bg-muted text-slate-800'
               : 'rounded-tr-sm bg-blue-600 text-white',
           )}
         >
+          {/* Conteúdo */}
           {ehAssistant ? (
-            <MarkdownRenderer conteudo={mensagem.conteudo} />
+            conteudoVazio ? null : (
+              <MarkdownRenderer conteudo={mensagem.conteudo} />
+            )
           ) : (
-            <p className="whitespace-pre-wrap break-words">{mensagem.conteudo}</p>
+            <p className="whitespace-pre-wrap break-words">
+              {mensagem.conteudo}
+            </p>
           )}
 
           {/* Timestamp */}
@@ -63,8 +69,10 @@ export function MessageBubble({ mensagem }: MessageBubbleProps) {
               ehAssistant ? 'text-muted-foreground' : 'text-blue-200',
             )}
           >
-            {/* Rede de segurança: Se tiver timestamp usa ele, senão usa a hora atual */}
-            {(mensagem.timestamp ? new Date(mensagem.timestamp) : new Date()).toLocaleTimeString('pt-BR', {
+            {(mensagem.timestamp
+              ? new Date(mensagem.timestamp)
+              : new Date()
+            ).toLocaleTimeString('pt-BR', {
               hour: '2-digit',
               minute: '2-digit',
             })}

@@ -1,12 +1,15 @@
 'use client'
 
-import { Bot } from 'lucide-react'
+import { Bot, Loader2 } from 'lucide-react'
 
 interface StreamingIndicatorProps {
   currentToolCall: string | null
 }
 
 export function StreamingIndicator({ currentToolCall }: StreamingIndicatorProps) {
+  const isConsultandoBanco =
+    currentToolCall === 'consultar_banco_vetorial'
+
   return (
     <div className="flex items-start gap-2.5 animate-in fade-in duration-300">
       {/* Avatar do assistant */}
@@ -14,21 +17,23 @@ export function StreamingIndicator({ currentToolCall }: StreamingIndicatorProps)
         <Bot className="h-4 w-4" />
       </div>
 
-      {/* Bolha com indicador */}
-      <div className="rounded-2xl rounded-tl-sm bg-muted px-4 py-3 shadow-sm">
-        {currentToolCall ? (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="animate-spin text-base">⚙️</span>
-            <span>
-              Consultando: <strong className="text-foreground">{currentToolCall}</strong>
-            </span>
+      {/* Bolha */}
+      <div className="rounded-2xl rounded-tl-sm bg-muted px-4 py-3 shadow-sm transition-all">
+        {isConsultandoBanco ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>🔍 Consultando banco de vagas...</span>
           </div>
         ) : (
-          // Três pontos pulsantes
-          <div className="flex items-center gap-1.5 py-0.5">
-            <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground [animation-delay:0ms]" />
-            <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground [animation-delay:150ms]" />
-            <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground [animation-delay:300ms]" />
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>Pathfinder está pensando</span>
+
+            {/* 3 dots animados */}
+            <div className="flex items-end gap-1">
+              <span className="animate-bounce [animation-delay:0ms]">.</span>
+              <span className="animate-bounce [animation-delay:150ms]">.</span>
+              <span className="animate-bounce [animation-delay:300ms]">.</span>
+            </div>
           </div>
         )}
       </div>

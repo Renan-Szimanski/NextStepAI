@@ -12,48 +12,69 @@ interface MessageListProps {
   currentToolCall: string | null
 }
 
-export function MessageList({ mensagens, isStreaming, currentToolCall }: MessageListProps) {
+export function MessageList({
+  mensagens,
+  isStreaming,
+  currentToolCall,
+}: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  // Auto-scroll para o final sempre que mensagens mudarem ou streaming iniciar
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [mensagens, isStreaming])
+  }, [mensagens, isStreaming, currentToolCall])
 
   const ultimaMensagem = mensagens[mensagens.length - 1]
-  const exibirIndicador =
+
+  const conteudoVazio =
+    !ultimaMensagem?.conteudo ||
+    ultimaMensagem?.conteudo.trim() === ''
+
+  // 🔹 1. Antes do primeiro token
+  const mostrarIndicatorInicial =
     isStreaming &&
     ultimaMensagem?.papel === 'assistant' &&
-    ultimaMensagem?.conteudo.trim() === ''
+    conteudoVazio
+
+  // 🔹 2. Durante execução de tool
+  const mostrarIndicatorTool =
+    isStreaming && currentToolCall !== null
 
   return (
     <ScrollArea className="h-full w-full">
       <div className="mx-auto w-full max-w-[800px] space-y-4 px-4 py-6">
-        {mensagens.map((mensagem) => {
-          // Se for a última mensagem do assistant vazia durante streaming,
-          // renderiza o indicador no lugar da bolha
-          const ehUltimaVazia =
-            exibirIndicador && mensagem.id === ultimaMensagem.id
+        {/* 🔹 Indicator de tool aparece ANTES da resposta */}
+        {mostrarIndicatorTool && (
+          <StreamingIndicator currentToolCall={currentToolCall} />
+        )}
 
-          if (ehUltimaVazia) {
+        {mensagens.map((mensagem) => {
+          const ehUltima =
+            mensagem.id === ultimaMensagem?.id
+
+          // 🔹 Substitui bolha vazia pelo indicador inicial
+          if (ehUltima && mostrarIndicatorInicial) {
             return (
-              <div key={mensagem.id} className="flex items-start gap-3">
-                <StreamingIndicator currentToolCall={currentToolCall} />
-              </div>
+              <StreamingIndicator
+                key={mensagem.id}
+                currentToolCall={null}
+              />
             )
           }
 
-          return <MessageBubble key={mensagem.id} mensagem={mensagem} />
+          return (
+            <MessageBubble
+              key={mensagem.id}
+              mensagem={mensagem}
+            />
+          )
         })}
 
-        {/* Indicador quando streaming começa antes de qualquer mensagem vazia */}
-        {isStreaming && ultimaMensagem?.papel === 'user' && (
-          <div className="flex items-start gap-3">
-            <StreamingIndicator currentToolCall={currentToolCall} />
-          </div>
-        )}
+        {/* 🔹 Caso ainda não tenha criado mensagem do assistant */}
+        {isStreaming &&
+          ultimaMensagem?.papel === 'user' && (
+            <StreamingIndicator currentToolCall={null} />
+          )}
 
-        {/* Âncora para auto-scroll */}
         <div ref={bottomRef} />
       </div>
     </ScrollArea>
