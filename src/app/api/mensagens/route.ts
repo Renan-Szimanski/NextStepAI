@@ -16,6 +16,7 @@
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { processarMensagem } from '@/agentes/orquestrador';
+import { Mensagem } from '@/tipos/agente';
 
 // LangChain.js depende de APIs Node (streams, crypto, etc.) — não roda em Edge.
 export const runtime = 'nodejs';
@@ -142,7 +143,7 @@ export async function POST(req: Request): Promise<Response> {
       req.signal.addEventListener('abort', onAbort, { once: true });
 
       try {
-        for await (const evento of processarMensagem(messages)) {
+        for await (const evento of processarMensagem(messages as Mensagem[])) {  
           if (fechado || req.signal.aborted) break;
           controller.enqueue(formatarEventoSSE(evento, encoder));
         }

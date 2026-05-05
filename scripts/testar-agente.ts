@@ -11,6 +11,7 @@ async function main() {
       conteudo:
         'Quero virar Analista de Dados Júnior em São Paulo. Pode me ajudar a montar um roadmap?',
       timestamp: Date.now(),
+      criadoEm: new Date()
     },
   ];
 

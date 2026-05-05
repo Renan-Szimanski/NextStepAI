@@ -1,7 +1,7 @@
 'use client'
 
 import { signOut } from 'next-auth/react'
-import { DropdownMenuItem } from '@/componentes/ui/dropdown-menu'
+import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { LogOut } from 'lucide-react'
 
 export function BotaoLogout() {
