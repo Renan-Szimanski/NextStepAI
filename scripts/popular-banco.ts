@@ -45,19 +45,20 @@ dotenv.config({ path: resolve(process.cwd(), '.env') });
 
 const PREFIXO_LOG = '[PopularBanco]';
 
-const DIRETORIO_VAGAS = join(process.cwd(), 'dados', 'vagas', 'sinteticas');
+const DIRETORIO_VAGAS_SINTETICAS = join(process.cwd(), 'dados', 'vagas', 'sinteticas');
+const DIRETORIO_VAGAS_REAIS = join(process.cwd(), 'dados', 'vagas', 'sinteticas');
 
 /** Arquivo de vagas REAIS (raspadas). */
-const ARQUIVO_REAIS = join(DIRETORIO_VAGAS, 'vagas_tuning.jsonl');
+const ARQUIVO_REAIS = join(DIRETORIO_VAGAS_REAIS, 'vagas_tuning.jsonl');
 
 /**
  * Possíveis nomes do arquivo de vagas SINTÉTICAS (com e sem til,
  * para portabilidade entre sistemas operacionais).
  */
 const ARQUIVOS_SINTETICAS = [
-  join(DIRETORIO_VAGAS, 'vagas_sinteticas_nãotuned.json'),
-  join(DIRETORIO_VAGAS, 'vagas_sinteticas_naotuned.json'),
-  join(DIRETORIO_VAGAS, 'vagas_sinteticas_nao_tuned.json'),
+  join(DIRETORIO_VAGAS_SINTETICAS, 'vagas_sinteticas_nãotuned.json'),
+  join(DIRETORIO_VAGAS_SINTETICAS, 'vagas_sinteticas_naotuned.json'),
+  join(DIRETORIO_VAGAS_SINTETICAS, 'vagas_sinteticas_nao_tuned.json'),
 ];
 
 const TABELA_VAGAS = 'vagas';

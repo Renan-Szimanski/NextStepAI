@@ -14,7 +14,7 @@ export type EstrategiaLLM = 'principal' | 'fallback';
  * ⚠️ Validar disponibilidade no plano da conta Groq antes do deploy:
  *    https://console.groq.com/docs/models
  */
-const MODELO_PRINCIPAL = 'llama-3.1-8b-instant';
+const MODELO_PRINCIPAL = 'openai/gpt-oss-120b';
 const MODELO_FALLBACK = 'openai/gpt-oss-20b';
 
 const CONFIG_LLM = {

@@ -42,6 +42,9 @@ next-env.d.ts
 # NextStepAI - Dados sintéticos locais
 /dados/vagas/sinteticas/*.json
 /dados/vagas/sinteticas/*.jsonl
+/dados/vagas/reais/*.json
+/dados/vagas/reais/*.jsonl
+
 !dados/vagas/sinteticas/.gitkeep
 
 # Cache e arquivos temporários do Supabase CLI

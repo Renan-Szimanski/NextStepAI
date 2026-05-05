@@ -17,6 +17,7 @@ function criarMensagem(papel: Papel, conteudo: string): Mensagem {
     id: `msg-${++_idCounter}`,
     papel,
     conteudo,
+    criadoEm: new Date(),
     timestamp: Date.now(),
   };
 }
