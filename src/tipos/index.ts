@@ -12,6 +12,7 @@ export interface Mensagem {
   conteudo: string;
   timestamp: number;
   toolName?: string;
+  criadoEm: Date;
 }
 
 /**

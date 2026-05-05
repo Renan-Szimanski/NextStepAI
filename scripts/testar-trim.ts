@@ -19,6 +19,7 @@ function criarMensagem(papel: Papel, conteudo: string): Mensagem {
     papel,
     conteudo,
     timestamp: Date.now(),
+    criadoEm: new Date()
   };
 }
 // ──────────────────────────────────────────────────────────

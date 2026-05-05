@@ -16,6 +16,7 @@ const MENSAGEM_BOAS_VINDAS: Mensagem = {
   papel: 'assistant',
   conteudo:
     'Olá! Sou o Pathfinder, seu mentor de carreira. Qual cargo ou área você está mirando? Posso analisar o mercado e montar um roadmap para você.',
+  timestamp: Date.now(),
   criadoEm: new Date(),
 }
 
@@ -35,6 +36,7 @@ export function ChatContainer({ userId }: ChatContainerProps) {
       id: uuidv4(),
       papel: 'user',
       conteudo: texto,
+      timestamp: Date.now(),
       criadoEm: new Date(),
     }
 
@@ -49,6 +51,7 @@ export function ChatContainer({ userId }: ChatContainerProps) {
       id: uuidv4(),
       papel: 'assistant',
       conteudo: `Entendido! Estou analisando o mercado para **"${texto}"**. Em breve terei um roadmap completo para você. *(resposta mock — integração real em breve)*`,
+      timestamp: Date.now(),
       criadoEm: new Date(),
     }
 
