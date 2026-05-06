@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { toast } from 'sonner'
-import { Bot } from 'lucide-react'
+import { Compass } from 'lucide-react'
 
 import type { Mensagem } from '@/tipos'
 import type { EventoStreamSSE } from '@/tipos/agente'
@@ -14,6 +14,7 @@ import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
 
 import BotaoLogout from '@/componentes/auth/BotaoLogout'
+import { ThemeToggle } from '@/componentes/theme-toggle'
 
 interface ChatContainerProps {
   userId: string
@@ -23,7 +24,7 @@ const MENSAGEM_BOAS_VINDAS: Mensagem = {
   id: uuidv4(),
   papel: 'assistant',
   conteudo:
-    'Olá! Sou o Pathfinder, seu mentor de carreira. Qual cargo ou área você está mirando? Posso analisar o mercado e montar um roadmap para você.',
+    'Olá! Sou o **Pathfinder**, seu mentor de carreira guiado por IA. Qual cargo ou área você está mirando no momento? Posso analisar o mercado e montar um roadmap de desenvolvimento profissional sob medida para você.',
   timestamp: Date.now(),
   criadoEm: new Date(),
 }
@@ -84,9 +85,6 @@ export function ChatContainer({ userId }: ChatContainerProps) {
       for await (const evento of lerStreamSSE(response)) {
         switch (evento.type) {
           case 'token':
-            // REMOVIDO: deduplicação por comparação com ultimoToken.
-            // Ela descartava tokens legítimos repetidos (ex: "não não", "o o")
-            // e era desnecessária após a correção do buffer no orquestrador.
             setMensagens((prev) =>
               prev.map((msg, index) => {
                 if (index === prev.length - 1 && msg.papel === 'assistant') {
@@ -117,12 +115,8 @@ export function ChatContainer({ userId }: ChatContainerProps) {
       }
     } catch (error) {
       console.error(error)
-
       toast.error('Erro de conexão com o servidor')
-
-      // Remove o placeholder vazio em caso de falha total.
       setMensagens((prev) => prev.slice(0, -1))
-
       setIsStreaming(false)
     }
   }
@@ -134,40 +128,37 @@ export function ChatContainer({ userId }: ChatContainerProps) {
   }, [])
 
   return (
-    <div className="flex h-full flex-col">
-      {/* Header */}
-      <header className="flex items-center gap-3 border-b bg-background px-4 py-3 shadow-sm">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
-          <Bot className="h-5 w-5" />
+    <div className="flex h-full flex-col bg-background relative">
+      <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-border/40 bg-background/80 backdrop-blur-md px-4 py-3 shadow-sm transition-colors">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
+          <Compass className="h-5 w-5" />
         </div>
 
-        <div>
-          <h1 className="text-base font-semibold leading-tight">
-            Conversa com Pathfinder
+        <div className="flex-1">
+          <h1 className="text-sm font-semibold tracking-tight text-foreground">
+            Pathfinder
           </h1>
-          <p className="text-xs text-muted-foreground">
-            Mentor de carreira com IA
-          </p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span
+              className={`h-2 w-2 rounded-full ${
+                isStreaming ? 'animate-pulse bg-amber-500' : 'bg-emerald-500'
+              }`}
+            />
+            <p className="text-xs font-medium text-muted-foreground">
+              {isStreaming ? 'Processando...' : 'Mentor IA Online'}
+            </p>
+          </div>
         </div>
 
-        <div className="ml-auto flex items-center gap-1.5">
-          <span
-            className={`h-2 w-2 rounded-full ${
-              isStreaming ? 'animate-pulse bg-amber-400' : 'bg-emerald-400'
-            }`}
-          />
-          <span className="text-xs text-muted-foreground">
-            {isStreaming ? 'Pensando...' : 'Online'}
-          </span>
-
-          <div className="border-l pl-4 border-slate-200">
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
+          <div className="border-l border-border pl-4">
             <BotaoLogout />
           </div>
         </div>
       </header>
 
-      {/* Mensagens */}
-      <div className="min-h-0 flex-1">
+      <div className="min-h-0 flex-1 bg-background/50">
         <MessageList
           mensagens={mensagens}
           isStreaming={isStreaming}
@@ -175,8 +166,7 @@ export function ChatContainer({ userId }: ChatContainerProps) {
         />
       </div>
 
-      {/* Input */}
-      <div className="border-t bg-background px-4 py-3">
+      <div className="border-t border-border/40 bg-gradient-to-t from-background to-background/95 px-4 py-4 backdrop-blur-sm">
         <div className="mx-auto w-full max-w-[800px]">
           <MessageInput onSubmit={enviarMensagem} disabled={isStreaming} />
         </div>

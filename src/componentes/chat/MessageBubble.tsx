@@ -2,7 +2,7 @@
 
 import type { Mensagem } from '@/tipos'
 import { MarkdownRenderer } from './MarkdownRenderer'
-import { Bot, User } from 'lucide-react'
+import { Compass, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface MessageBubbleProps {
@@ -16,57 +16,55 @@ export function MessageBubble({ mensagem }: MessageBubbleProps) {
   return (
     <div
       className={cn(
-        'flex w-full animate-in fade-in slide-in-from-bottom-2 duration-300',
+        'flex w-full group animate-in fade-in slide-in-from-bottom-2 duration-300',
         ehAssistant ? 'justify-start' : 'justify-end',
       )}
     >
       <div
         className={cn(
-          'flex max-w-[85%] items-start gap-2.5 sm:max-w-[75%]',
+          'flex max-w-[90%] md:max-w-[80%] items-end gap-3',
           ehAssistant ? 'flex-row' : 'flex-row-reverse',
         )}
       >
-        {/* Avatar */}
         <div
           className={cn(
-            'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold',
+            'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm shadow-sm ring-1 ring-border/20',
             ehAssistant
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-blue-600 text-white',
+              ? 'bg-primary/10 text-primary mb-1'
+              : 'bg-primary text-primary-foreground mb-1',
           )}
         >
           {ehAssistant ? (
-            <Bot className="h-4 w-4" />
+            <Compass className="h-4 w-4" />
           ) : (
             <User className="h-4 w-4" />
           )}
         </div>
 
-        {/* Bolha */}
         <div
           className={cn(
-            'rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm transition-all',
+            'flex flex-col gap-1 overflow-hidden transition-all',
             ehAssistant
-              ? 'rounded-tl-sm bg-muted text-slate-800'
-              : 'rounded-tr-sm bg-blue-600 text-white',
+              ? 'rounded-2xl rounded-bl-sm bg-muted/60 border border-border/40 px-5 py-4 text-foreground'
+              : 'rounded-2xl rounded-br-sm bg-primary text-primary-foreground px-5 py-3 shadow-md',
           )}
         >
-          {/* Conteúdo */}
-          {ehAssistant ? (
-            conteudoVazio ? null : (
-              <MarkdownRenderer conteudo={mensagem.conteudo} />
-            )
-          ) : (
-            <p className="whitespace-pre-wrap break-words">
-              {mensagem.conteudo}
-            </p>
-          )}
+          <div className="text-sm leading-relaxed">
+            {ehAssistant ? (
+              conteudoVazio ? null : (
+                <MarkdownRenderer conteudo={mensagem.conteudo} />
+              )
+            ) : (
+              <p className="whitespace-pre-wrap break-words">
+                {mensagem.conteudo}
+              </p>
+            )}
+          </div>
 
-          {/* Timestamp */}
-          <p
+          <span
             className={cn(
-              'mt-1 text-right text-[10px]',
-              ehAssistant ? 'text-muted-foreground' : 'text-blue-200',
+              'text-[10px] opacity-60 mt-1 select-none',
+              ehAssistant ? 'text-left' : 'text-right text-primary-foreground/80'
             )}
           >
             {(mensagem.timestamp
@@ -76,7 +74,7 @@ export function MessageBubble({ mensagem }: MessageBubbleProps) {
               hour: '2-digit',
               minute: '2-digit',
             })}
-          </p>
+          </span>
         </div>
       </div>
     </div>

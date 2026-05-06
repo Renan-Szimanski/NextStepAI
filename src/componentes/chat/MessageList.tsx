@@ -29,35 +29,32 @@ export function MessageList({
     !ultimaMensagem?.conteudo ||
     ultimaMensagem?.conteudo.trim() === ''
 
-  // 🔹 1. Antes do primeiro token
   const mostrarIndicatorInicial =
     isStreaming &&
     ultimaMensagem?.papel === 'assistant' &&
     conteudoVazio
 
-  // 🔹 2. Durante execução de tool
   const mostrarIndicatorTool =
     isStreaming && currentToolCall !== null
 
   return (
     <ScrollArea className="h-full w-full">
-      <div className="mx-auto w-full max-w-[800px] space-y-4 px-4 py-6">
-        {/* 🔹 Indicator de tool aparece ANTES da resposta */}
+      <div className="mx-auto w-full max-w-[800px] flex flex-col space-y-6 px-4 pt-8 pb-10">
+        
         {mostrarIndicatorTool && (
-          <StreamingIndicator currentToolCall={currentToolCall} />
+          <div className="animate-in fade-in slide-in-from-bottom-2">
+            <StreamingIndicator currentToolCall={currentToolCall} />
+          </div>
         )}
 
         {mensagens.map((mensagem) => {
-          const ehUltima =
-            mensagem.id === ultimaMensagem?.id
+          const ehUltima = mensagem.id === ultimaMensagem?.id
 
-          // 🔹 Substitui bolha vazia pelo indicador inicial
           if (ehUltima && mostrarIndicatorInicial) {
             return (
-              <StreamingIndicator
-                key={mensagem.id}
-                currentToolCall={null}
-              />
+              <div key={mensagem.id} className="animate-in fade-in slide-in-from-bottom-2">
+                 <StreamingIndicator currentToolCall={null} />
+              </div>
             )
           }
 
@@ -69,13 +66,13 @@ export function MessageList({
           )
         })}
 
-        {/* 🔹 Caso ainda não tenha criado mensagem do assistant */}
-        {isStreaming &&
-          ultimaMensagem?.papel === 'user' && (
-            <StreamingIndicator currentToolCall={null} />
-          )}
+        {isStreaming && ultimaMensagem?.papel === 'user' && (
+          <div className="animate-in fade-in slide-in-from-bottom-2">
+             <StreamingIndicator currentToolCall={null} />
+          </div>
+        )}
 
-        <div ref={bottomRef} />
+        <div ref={bottomRef} className="h-px" />
       </div>
     </ScrollArea>
   )
