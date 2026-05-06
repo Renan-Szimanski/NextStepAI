@@ -143,17 +143,12 @@ export async function POST(req: Request): Promise<Response> {
       req.signal.addEventListener('abort', onAbort, { once: true });
 
       try {
-        for await (const evento of processarMensagem(messages as Mensagem[])) {  
+        for await (const evento of processarMensagem(messages as Mensagem[])) {
           if (fechado || req.signal.aborted) break;
           controller.enqueue(formatarEventoSSE(evento, encoder));
         }
-
-        // Evento final padronizado (o frontend pode usar para marcar EOS).
-        if (!fechado) {
-          controller.enqueue(
-            formatarEventoSSE({ tipo: 'done' }, encoder),
-          );
-        }
+        // REMOVIDO: evento `done` duplicado com chave `tipo` errada.
+        // O orquestrador já emite { type: 'done' } corretamente.
       } catch (erro) {
         // Log completo no servidor, mas envia mensagem genérica ao cliente.
         console.error('[api/mensagens] erro durante streaming', {
@@ -170,8 +165,8 @@ export async function POST(req: Request): Promise<Response> {
             controller.enqueue(
               formatarEventoSSE(
                 {
-                  tipo: 'error',
-                  mensagem:
+                  type: 'error',
+                  message:
                     'Ocorreu um erro ao processar sua mensagem. Tente novamente.',
                 },
                 encoder,

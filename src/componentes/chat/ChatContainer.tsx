@@ -80,27 +80,21 @@ export function ChatContainer({ userId }: ChatContainerProps) {
       if (!response.ok) {
         throw new Error('Erro na requisição')
       }
-      let ultimoToken = ''
+
       for await (const evento of lerStreamSSE(response)) {
         switch (evento.type) {
           case 'token':
-            if (evento.content === ultimoToken) break
-
-            ultimoToken = evento.content
-
-            setMensagens((prev) => {
-              return prev.map((msg, index) => {
+            // REMOVIDO: deduplicação por comparação com ultimoToken.
+            // Ela descartava tokens legítimos repetidos (ex: "não não", "o o")
+            // e era desnecessária após a correção do buffer no orquestrador.
+            setMensagens((prev) =>
+              prev.map((msg, index) => {
                 if (index === prev.length - 1 && msg.papel === 'assistant') {
-                  return {
-                    ...msg,
-                    conteudo: msg.conteudo.endsWith(evento.content)
-                    ? msg.conteudo
-                    : msg.conteudo + evento.content,
-                  }
+                  return { ...msg, conteudo: msg.conteudo + evento.content }
                 }
                 return msg
               })
-            })
+            )
             break
 
           case 'tool_call':
@@ -126,7 +120,7 @@ export function ChatContainer({ userId }: ChatContainerProps) {
 
       toast.error('Erro de conexão com o servidor')
 
-      // remove placeholder
+      // Remove o placeholder vazio em caso de falha total.
       setMensagens((prev) => prev.slice(0, -1))
 
       setIsStreaming(false)
