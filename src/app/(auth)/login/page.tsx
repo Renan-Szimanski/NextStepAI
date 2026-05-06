@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import BotaoLoginGitHub from "@/componentes/auth/BotaoLoginGitHub";
 import BotaoLoginGoogle from "@/componentes/auth/BotaoLoginGoogle";
 import FormLoginCredenciais from "@/componentes/auth/FormLoginCredenciais";
+import Link from "next/link";
 
 export default async function LoginPage() {
   const session = await auth();
@@ -46,6 +47,13 @@ export default async function LoginPage() {
 
         <p className="text-xs text-slate-400 text-center mt-4">
           Ao entrar, você concorda com nossos Termos de Serviço e Política de Privacidade.
+        </p>
+
+        <p className="text-sm text-slate-500 text-center mt-6">
+          Ainda não tem uma conta?{" "}
+          <Link href="/cadastro" className="text-blue-600 hover:underline font-medium">
+            Cadastre-se grátis
+          </Link>
         </p>
       </CardContent>
     </Card>
