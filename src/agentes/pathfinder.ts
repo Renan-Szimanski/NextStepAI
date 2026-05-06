@@ -1,6 +1,6 @@
 // src/agentes/pathfinder.ts
 
-import { createAgent } from 'langchain';
+import { createReactAgent } from '@langchain/langgraph/prebuilt';
 import { criarLLM } from '@/lib/langchain/llm';
 import { consultarBancoVetorial } from '@/agentes/ferramentas/buscar-vetor';
 import { SYSTEM_PROMPT_PATHFINDER } from '@/agentes/prompts/pathfinder-system';
@@ -22,24 +22,23 @@ const PREFIXO_LOG = '[Pathfinder]';
  *   Ajustar conforme a janela do modelo principal e o custo/latência tolerados.
  */
 const CONFIG_MEMORIA = {
-  maxTokensHistorico: 10000,
+  maxTokensHistorico: 6000,
 } as const;
 
 /**
- * Cria a instância do agente Pathfinder usando `createAgent` do LangChain v1.
- * Substitui o `createReactAgent` deprecated do `@langchain/langgraph/prebuilt`.
+ * Cria a instância do agente Pathfinder usando `createReactAgent` do LangGraph.
  *
  * @param usarFallback - Se true, utiliza o modelo menor (rate limit / custos).
- * @returns Instância compilada do agente.
+ * @returns Instância compilada do agente ReAct.
  */
 export function criarAgentePathfinder(usarFallback: boolean = false) {
   const llm = criarLLM(usarFallback ? 'fallback' : 'principal');
   const tools = [consultarBancoVetorial];
 
-  return createAgent({
-    model: llm,
+  return createReactAgent({
+    llm,                                       // ← chave correta (não "model")
     tools,
-    systemPrompt: SYSTEM_PROMPT_PATHFINDER,
+    stateModifier: SYSTEM_PROMPT_PATHFINDER,   // ← chave correta (não "systemPrompt")
   });
 }
 
@@ -51,7 +50,7 @@ export function criarAgentePathfinder(usarFallback: boolean = false) {
  * - 'user'      → HumanMessage
  * - 'assistant' → AIMessage
  * - 'tool'      → ignorada (LangGraph reconstrói o ciclo de tools internamente)
- * - 'system'    → ignorada (já fornecida via `systemPrompt` do createAgent)
+ * - 'system'    → ignorada (já fornecida via `stateModifier` do createReactAgent)
  *
  * Mensagens com conteúdo vazio também são ignoradas para não poluir o contexto.
  *
@@ -87,7 +86,7 @@ export async function converterMensagensParaLangChain(
         break;
 
       case 'system':
-        // System prompt já é injetado via `systemPrompt` do createAgent.
+        // System prompt já é injetado via `stateModifier` do createReactAgent.
         break;
 
       default: {

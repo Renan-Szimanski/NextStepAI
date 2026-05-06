@@ -1,48 +1,40 @@
-import { ChatGroq } from '@langchain/groq';
+// src/lib/langchain/llm.ts
+
+import { ChatDeepSeek } from '@langchain/deepseek';
 
 const PREFIXO_LOG = '[LangChain]';
 
-/**
- * Estratégia de seleção do modelo:
- * - `principal`: modelo maior, melhor qualidade.
- * - `fallback`:  modelo menor/mais rápido, usado em caso de rate limit ou falha.
- */
 export type EstrategiaLLM = 'principal' | 'fallback';
 
 /**
- * IDs dos modelos Groq usados pelo MVP do NextStepAI.
- * ⚠️ Validar disponibilidade no plano da conta Groq antes do deploy:
- *    https://console.groq.com/docs/models
+ * IDs dos modelos DeepSeek usados pelo MVP do NextStepAI.
+ * - principal: deepseek-v4-flash — rápido e econômico, ideal para o MVP.
+ * - fallback:  deepseek-chat     — alias legado, mais compatível como fallback.
+ *
+ * Referência: https://platform.deepseek.com/docs
  */
-const MODELO_PRINCIPAL = 'llama-3.1-8b-instant';
-const MODELO_FALLBACK = 'openai/gpt-oss-20b';
+const MODELO_PRINCIPAL = 'deepseek-chat';  // aponta para o modelo mais recente estável
+const MODELO_FALLBACK = 'deepseek-chat';   // mesmo modelo como fallback seguro no MVP
 
 const CONFIG_LLM = {
- // temperatura: 0.4,
- // maxTokensSaida: 4096,
- // timeoutMs: 30_000,
- //maxRetries: 2,
   temperatura: 0.4,
-  maxTokensSaida: 2048,
+  maxTokensSaida: 4096,
   timeoutMs: 30_000,
   maxRetries: 2,
 } as const;
 
 /**
- * Cria uma instância configurada do LLM Groq.
- *
- * A validação da `GROQ_API_KEY` é feita dentro da função (não no escopo do módulo)
- * para evitar quebrar o build do Next.js quando a env var não está presente.
+ * Cria uma instância configurada do LLM DeepSeek.
  *
  * @param estrategia - 'principal' (padrão) ou 'fallback'.
- * @returns Instância de ChatGroq pronta para uso.
- * @throws Error se `GROQ_API_KEY` não estiver definida no ambiente.
+ * @returns Instância de ChatDeepSeek pronta para uso.
+ * @throws Error se `DEEPSEEK_API_KEY` não estiver definida no ambiente.
  */
-export function criarLLM(estrategia: EstrategiaLLM = 'principal'): ChatGroq {
-  const apiKey = process.env.GROQ_API_KEY;
+export function criarLLM(estrategia: EstrategiaLLM = 'principal'): ChatDeepSeek {
+  const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!apiKey) {
     throw new Error(
-      `${PREFIXO_LOG} Variável de ambiente GROQ_API_KEY não definida.`,
+      `${PREFIXO_LOG} Variável de ambiente DEEPSEEK_API_KEY não definida.`,
     );
   }
 
@@ -51,7 +43,7 @@ export function criarLLM(estrategia: EstrategiaLLM = 'principal'): ChatGroq {
 
   console.log(`${PREFIXO_LOG} Inicializando LLM: ${estrategia} (${modelName})`);
 
-  return new ChatGroq({
+  return new ChatDeepSeek({
     apiKey,
     model: modelName,
     temperature: CONFIG_LLM.temperatura,
