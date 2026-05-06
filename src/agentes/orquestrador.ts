@@ -14,15 +14,12 @@ const PREFIXO = '[Orquestrador]';
  * gerenciar o stream de eventos do agente e aplicar lógica de fallback.
  *
  * Fluxo:
- * 1. Tenta o agente principal — bufferiza tokens até o final.
- * 2. Em caso de sucesso: flush do buffer e fim.
+ * 1. Tenta o agente principal com streaming direto (sem buffer).
+ * 2. Em caso de sucesso: tokens chegam ao cliente em tempo real.
  * 3. Em caso de timeout → erro amigável imediato.
- * 4. Em caso de rate limit / erro genérico → tenta fallback (sem vazar tokens parciais).
- * 5. Se fallback também falhar → erro amigável.
- *
- * Otimização: eventos de tool executados com sucesso no principal são logados
- * mas a tool é re-executada no fallback (limitação do LangGraph que recomeça
- * o ReAct loop). Mitigação futura: cache de resultados de tools no escopo da request.
+ * 4. Em caso de erro ANTES do primeiro token → tenta fallback.
+ * 5. Se já havia tokens emitidos → informa interrupção (não dá rollback).
+ * 6. Se fallback também falhar → erro amigável.
  */
 export async function* processarMensagem(
   messages: Mensagem[],
@@ -38,65 +35,56 @@ export async function* processarMensagem(
   );
 
   // -----------------------------------------------------------------------
-  // Tentativa 1: agente principal (com buffer para evitar vazamento de tokens)
+  // Tentativa 1: agente principal com streaming direto.
+  // Tokens são emitidos imediatamente ao cliente (sem buffer intermediário).
+  // O fallback só é acionado se o erro ocorrer ANTES do primeiro token,
+  // pois após emitir tokens não há como fazer rollback no frontend.
   // -----------------------------------------------------------------------
-  const eventosPrincipal: EventoStreamSSE[] = [];
-  let principalSucesso = false;
-  let erroPrincipal: unknown = null;
+  let primeiroTokenEmitido = false;
 
   try {
     for await (const evento of executarAgente(false, messages)) {
-      eventosPrincipal.push(evento);
+      if (evento.type === 'token') primeiroTokenEmitido = true;
+      yield evento; // ← emissão imediata (streaming real)
     }
-    principalSucesso = true;
-  } catch (error: unknown) {
-    erroPrincipal = error;
-    console.error(`${PREFIXO} Erro no agente principal:`, error);
-  }
 
-  if (principalSucesso) {
-    // Flush do buffer: emite todos os eventos acumulados.
-    for (const evento of eventosPrincipal) {
-      yield evento;
-    }
     yield { type: 'done' };
     console.log(`${PREFIXO} Concluído com sucesso (principal).`);
     return;
-  }
 
-  // ---- Houve erro no principal. Decidir entre erro fatal ou fallback. ----
-  if (ehTimeout(erroPrincipal)) {
-    yield {
-      type: 'error',
-      message: 'A resposta demorou demais. Por favor, tente novamente.',
-    };
-    return;
-  }
+  } catch (error: unknown) {
+    console.error(`${PREFIXO} Erro no agente principal:`, error);
 
-  if (ehRateLimit(erroPrincipal)) {
-    console.warn(`${PREFIXO} Rate limit detectado. Acionando fallback...`);
-  } else {
-    console.warn(`${PREFIXO} Erro genérico. Tentando fallback...`);
-  }
+    // Se já emitimos tokens, não podemos fazer fallback sem duplicar conteúdo.
+    if (primeiroTokenEmitido) {
+      yield {
+        type: 'error',
+        message: 'A resposta foi interrompida. Por favor, tente novamente.',
+      };
+      return;
+    }
 
-  // Importante: NÃO emitimos os eventos parciais do principal.
-  // Eles são descartados para evitar texto duplicado/quebrado no frontend.
-  if (eventosPrincipal.length > 0) {
-    const tokensDescartados = eventosPrincipal.filter(
-      (e) => e.type === 'token',
-    ).length;
-    if (tokensDescartados > 0) {
-      console.warn(
-        `${PREFIXO} Descartando ${tokensDescartados} tokens parciais do principal.`,
-      );
+    // Sem tokens emitidos: podemos tentar o fallback com segurança.
+    if (ehTimeout(error)) {
+      yield {
+        type: 'error',
+        message: 'A resposta demorou demais. Por favor, tente novamente.',
+      };
+      return;
+    }
+
+    if (ehRateLimit(error)) {
+      console.warn(`${PREFIXO} Rate limit detectado. Acionando fallback...`);
+    } else {
+      console.warn(`${PREFIXO} Erro genérico sem tokens emitidos. Tentando fallback...`);
     }
   }
 
   // -----------------------------------------------------------------------
-  // Tentativa 2: fallback (stream direto, sem buffer — já é o último recurso)
+  // Tentativa 2: fallback (só chega aqui se o principal falhou SEM emitir tokens)
   // -----------------------------------------------------------------------
   try {
-    yield* executarAgente(true, messages);
+    yield* executarAgente(true, messages); // ← streaming direto também no fallback
     yield { type: 'done' };
     console.log(`${PREFIXO} Concluído com sucesso (fallback).`);
   } catch (fallbackError: unknown) {

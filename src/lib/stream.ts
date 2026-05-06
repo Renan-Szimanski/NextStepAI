@@ -1,8 +1,7 @@
 import { EventoStreamSSE } from '@/tipos/agente';
 
 export async function* lerStreamSSE(
-  response: Response,
-  signal?: AbortSignal
+  response: Response
 ): AsyncGenerator<EventoStreamSSE> {
   if (!response.body) {
     throw new Error('Response sem body para leitura de stream');
@@ -10,71 +9,52 @@ export async function* lerStreamSSE(
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder('utf-8');
+
   let buffer = '';
 
   try {
     while (true) {
-      if (signal?.aborted) {
-        await reader.cancel();
-        break;
-      }
-
       const { value, done } = await reader.read();
 
-      if (done) {
-        // flush final do decoder (importante!)
-        buffer += decoder.decode();
-        break;
-      }
+      // Flush final do decoder para liberar caracteres multi-byte pendentes
+      // (ex: acentos e caracteres especiais do português cortados entre chunks).
+      buffer += done
+        ? decoder.decode()                         // ← flush sem stream:true
+        : decoder.decode(value, { stream: true }); // ← decodificação incremental
 
-      buffer += decoder.decode(value, { stream: true });
+      // Separa os eventos pelo delimitador SSE padrão (linha dupla).
+      const eventos = buffer.split('\n\n');
 
-      const eventos = buffer.split(/\r?\n\r?\n/);
-      buffer = eventos.pop() || '';
+      // O último item pode ser um evento incompleto — mantém no buffer
+      // para ser completado no próximo chunk.
+      buffer = eventos.pop() ?? '';
 
-      for (const evento of eventos) {
-        const linhas = evento.split(/\r?\n/);
-        let dataAcumulado = '';
+      for (const bloco of eventos) {
+        // SSE suporta múltiplas linhas por bloco (ex: "event:", "id:", "data:").
+        // Procura especificamente a linha com o payload "data:".
+        const linhaData = bloco
+          .split('\n')
+          .find((l) => l.startsWith('data: '));
 
-        for (const linha of linhas) {
-          if (!linha || linha.startsWith(':')) continue;
+        if (!linhaData) continue;
 
-          if (linha.startsWith('data:')) {
-            // suporta "data:" com ou sem espaço
-            const conteudo = linha.slice(5).trimStart();
-            dataAcumulado += conteudo + '\n';
-          }
-        }
-
-        if (!dataAcumulado) continue;
-
-        const trimData = dataAcumulado.trim();
-
-        if (trimData === '[DONE]') {
-          return;
-        }
+        // Remove o prefixo pela posição, não por substituição de string
+        // (evita comportamento inesperado se o JSON contiver "data: " no valor).
+        const json = linhaData.slice('data: '.length);
 
         try {
-          const parsed: EventoStreamSSE = JSON.parse(trimData);
+          const parsed: EventoStreamSSE = JSON.parse(json);
           yield parsed;
         } catch (err) {
-          // mantém no buffer se parecer incompleto
-          buffer = trimData + '\n\n' + buffer;
-          console.warn('JSON incompleto, aguardando mais chunks...');
+          console.error('[lerStreamSSE] Erro ao parsear evento SSE:', err, { json });
         }
       }
-    }
 
-    // tenta processar resto do buffer após o loop
-    if (buffer.trim()) {
-      try {
-        const parsed: EventoStreamSSE = JSON.parse(buffer.trim());
-        yield parsed;
-      } catch {
-        // ignora lixo final
-      }
+      // Sai do loop apenas APÓS processar o buffer restante do chunk final.
+      if (done) break;
     }
   } finally {
+    // Garante liberação do reader mesmo em caso de erro ou abort do cliente.
     reader.releaseLock();
   }
 }
