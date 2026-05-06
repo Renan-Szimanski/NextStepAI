@@ -46,7 +46,7 @@ dotenv.config({ path: resolve(process.cwd(), '.env') });
 const PREFIXO_LOG = '[PopularBanco]';
 
 const DIRETORIO_VAGAS_SINTETICAS = join(process.cwd(), 'dados', 'vagas', 'sinteticas');
-const DIRETORIO_VAGAS_REAIS = join(process.cwd(), 'dados', 'vagas', 'sinteticas');
+const DIRETORIO_VAGAS_REAIS = join(process.cwd(), 'dados', 'vagas', 'reais');
 
 /** Arquivo de vagas REAIS (raspadas). */
 const ARQUIVO_REAIS = join(DIRETORIO_VAGAS_REAIS, 'vagas_tuning.jsonl');
