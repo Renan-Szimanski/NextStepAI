@@ -12,7 +12,10 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
-    GitHub,
+    GitHub({
+      clientId: process.env.GITHUB_CLIENT_ID,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+    }),
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
