@@ -13,6 +13,8 @@ import { lerStreamSSE } from '@/lib/stream'
 import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
 
+import BotaoLogout from '@/componentes/auth/BotaoLogout'
+
 interface ChatContainerProps {
   userId: string
 }
@@ -163,6 +165,10 @@ export function ChatContainer({ userId }: ChatContainerProps) {
           <span className="text-xs text-muted-foreground">
             {isStreaming ? 'Pensando...' : 'Online'}
           </span>
+
+          <div className="border-l pl-4 border-slate-200">
+            <BotaoLogout />
+          </div>
         </div>
       </header>
 
