@@ -6,30 +6,24 @@ import FormCadastro from "@/componentes/auth/FormCadastro";
 
 export default async function CadastroPage() {
   const session = await auth();
-
-  // Se já estiver logado, não tem por que criar conta nova
-  if (session?.user) {
-    redirect("/chat");
-  }
+  if (session?.user) redirect("/chat");
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4 bg-slate-50">
-      <Card className="w-full max-w-md shadow-xl border-slate-200">
+    <div className="flex min-h-screen items-center justify-center p-4 bg-background">
+      <Card className="w-full max-w-md shadow-xl border-border bg-card text-card-foreground">
         <CardHeader className="text-center space-y-2">
-          <CardTitle className="text-3xl font-bold tracking-tight text-slate-900">
+          <CardTitle className="text-3xl font-bold tracking-tight">
             Criar Conta
           </CardTitle>
-          <CardDescription className="text-slate-500 text-base">
+          <CardDescription>
             Junte-se ao NextStepAI e decole sua carreira
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          
           <FormCadastro />
-
-          <p className="text-sm text-slate-500 text-center mt-4">
+          <p className="text-sm text-muted-foreground text-center mt-4">
             Já tem uma conta?{" "}
-            <Link href="/login" className="text-blue-600 hover:underline font-medium">
+            <Link href="/login" className="text-primary hover:underline font-medium">
               Faça login
             </Link>
           </p>

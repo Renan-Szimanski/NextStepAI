@@ -11,6 +11,7 @@ import { toast } from "sonner";
 export default function FormCadastro() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [erro, setErro] = useState("");
   const [formData, setFormData] = useState({
     nome: "",
     email: "",
@@ -19,10 +20,23 @@ export default function FormCadastro() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
+    setErro("");
+  };
+
+  const validarSenha = (senha: string) => {
+    if (senha.length < 8) {
+      setErro("A senha deve ter pelo menos 8 caracteres.");
+      return false;
+    }
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErro("");
+
+    if (!validarSenha(formData.senha)) return;
+
     setIsLoading(true);
 
     try {
@@ -35,17 +49,18 @@ export default function FormCadastro() {
       const data = await response.json();
 
       if (!response.ok) {
-        toast.error(data.error || "Erro ao criar conta.");
+        const msgErro = data.error || "Erro ao criar conta.";
+        setErro(msgErro);
+        toast.error(msgErro);
         setIsLoading(false);
         return;
       }
 
-      toast.success("Conta criada com sucesso! Faça login.");
-      router.push("/login"); // Manda o usuário para a tela de login
-      
-    } catch (error) {
-      console.error(error); // <-- Usamos a variável aqui!
+      toast.success("Conta criada! Verifique seu e-mail para confirmar o cadastro.");
+      setTimeout(() => router.push("/login"), 2000);
+    } catch {
       toast.error("Erro de conexão com o servidor.");
+      setErro("Erro de conexão. Tente novamente.");
       setIsLoading(false);
     }
   };
@@ -78,14 +93,16 @@ export default function FormCadastro() {
         <Input 
           id="senha" 
           type="password" 
-          placeholder="Crie uma senha forte"
+          placeholder="Mínimo 8 caracteres"
           value={formData.senha}
           onChange={handleChange}
           required 
-          minLength={6}
         />
+        {erro && (
+          <p className="text-sm text-red-600 dark:text-red-400 mt-1">{erro}</p>
+        )}
       </div>
-      <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
+      <Button type="submit" className="w-full" disabled={isLoading}>
         {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
         Criar conta
       </Button>
