@@ -1,18 +1,17 @@
+// src/middleware.ts
 import { auth } from "@/lib/auth";
-import { NextResponse } from "next/server"; // Importação corrigida
+import { NextResponse } from "next/server";
 
 export default auth((req) => {
-  // Agora verificamos estritamente se existe um USUÁRIO logado
   const isLoggedIn = !!req.auth?.user; 
   const isChatRoute = req.nextUrl.pathname.startsWith("/chat");
+  const isPlanosRoute = req.nextUrl.pathname.startsWith("/meus-planos");
   const isLoginRoute = req.nextUrl.pathname === "/login";
 
-  // Redireciona para login se tentar acessar /chat sem autenticação
-  if (isChatRoute && !isLoggedIn) {
+  if ((isChatRoute || isPlanosRoute) && !isLoggedIn) {
     return NextResponse.redirect(new URL("/login", req.nextUrl));
   }
 
-  // Redireciona para /chat se tentar acessar /login já estando autenticado
   if (isLoginRoute && isLoggedIn) {
     return NextResponse.redirect(new URL("/chat", req.nextUrl));
   }
@@ -20,7 +19,6 @@ export default auth((req) => {
   return NextResponse.next();
 });
 
-// Matcher para rodar o middleware apenas nas rotas necessárias
 export const config = {
-  matcher: ["/chat/:path*", "/login"],
+  matcher: ["/chat/:path*", "/meus-planos/:path*", "/login"],
 };

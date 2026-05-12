@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     // Se o Supabase estiver configurado para confirmar e-mail, o usuário só conseguirá logar após verificar
     return NextResponse.json(
       { 
-        message: "Conta criada! Verifique seu e-mail para confirmar o cadastro antes de fazer login.",
+        message: "Conta criada com sucesso!",
         user: { id: data.user?.id, email: data.user?.email }
       },
       { status: 201 }

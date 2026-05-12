@@ -4,6 +4,7 @@
 
 import { supabaseAdmin } from '@/lib/supabase/server'
 import type { ConversaResumo, ConversaCompleta, MensagemPersistida } from '@/tipos/historico'
+import { ChatDeepSeek } from '@langchain/deepseek'
 
 /**
  * Cria uma nova conversa.
@@ -149,5 +150,76 @@ export async function deletarConversa(
   if (error) {
     console.error('[deletarConversa] Erro ao deletar conversa:', error)
     throw new Error('Falha ao deletar conversa.')
+  }
+}
+
+/**
+ * Gera um título curto para a conversa usando IA (DeepSeek) e atualiza no banco.
+ * @param conversaId - ID da conversa
+ * @param usuarioId - ID do usuário (para verificar permissão)
+ * @returns O título gerado ou null em caso de erro
+ */
+export async function gerarTituloConversa(
+  conversaId: string,
+  usuarioId: string
+): Promise<string | null> {
+  // 1. Busca as primeiras mensagens (usuário e assistente) para contexto
+  const { data: mensagens, error: msgError } = await supabaseAdmin
+    .from('mensagens')
+    .select('papel, conteudo')
+    .eq('conversa_id', conversaId)
+    .order('criado_em', { ascending: true })
+    .limit(4) // primeiras 2 interações (user + assistant)
+
+  if (msgError || !mensagens || mensagens.length < 2) {
+    console.error('[gerarTituloConversa] Erro ou mensagens insuficientes:', msgError)
+    return null
+  }
+
+  // 2. Constrói contexto para o LLM
+  const contexto = mensagens
+    .map(m => `${m.papel === 'usuario' ? 'Usuário' : 'Assistente'}: ${m.conteudo}`)
+    .join('\n')
+
+  // 3. Verifica a chave da API
+  if (!process.env.DEEPSEEK_API_KEY) {
+    console.error('[gerarTituloConversa] DEEPSEEK_API_KEY não definida no ambiente')
+    return null
+  }
+
+  try {
+    // Usa a classe ChatDeepSeek importada no topo (não é necessário import dinâmico)
+    const model = new ChatDeepSeek({
+      model: 'deepseek-chat',
+      temperature: 0.3,
+      apiKey: process.env.DEEPSEEK_API_KEY,
+    })
+
+    const prompt = `Com base na conversa abaixo entre um usuário e um mentor de carreira (Pathfinder), gere um TÍTULO CURTO (máximo 6 palavras) que resuma o objetivo ou o cargo-alvo da conversa. Retorne APENAS o título, sem aspas ou pontuação extra.
+
+Conversa:
+${contexto}
+
+Título:`
+
+    const resposta = await model.invoke(prompt)
+    let titulo = typeof resposta.content === 'string' ? resposta.content : String(resposta.content)
+    titulo = titulo.replace(/^["']|["']$/g, '').slice(0, 60)
+
+    if (!titulo) throw new Error('Título vazio')
+
+    // 4. Atualiza o título no banco
+    const { error: updateError } = await supabaseAdmin
+      .from('conversas')
+      .update({ titulo })
+      .eq('id', conversaId)
+      .eq('usuario_id', usuarioId)
+
+    if (updateError) throw updateError
+
+    return titulo
+  } catch (error) {
+    console.error('[gerarTituloConversa] Erro ao gerar título:', error)
+    return null
   }
 }
