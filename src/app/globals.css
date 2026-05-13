@@ -105,3 +105,22 @@
   font-style: italic;
   opacity: 0.85;
 }
+
+/* Estilos de acessibilidade - foco visível e contraste */
+:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Garantir contraste mínimo para textos */
+.markdown-content,
+.text-muted-foreground {
+  color: hsl(var(--muted-foreground));
+}
+
+/* Remove outline apenas quando há alternativa de foco (ex: focus-visible) */
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible) {
+  outline: none;
+}

@@ -74,11 +74,12 @@ export function MessageInput({ onSubmit, disabled, hasCurriculo, onUploadSuccess
             'h-11 w-11 shrink-0 rounded-xl transition-all duration-150 relative',
             hasCurriculo && 'text-green-600 dark:text-green-400'
           )}
-          aria-label="Enviar currículo"
+          aria-label="Enviar currículo PDF"
+          title="Enviar currículo PDF"
         >
-          <Paperclip className="h-5 w-5" />
+          <Paperclip className="h-5 w-5" aria-hidden="true" />
           {hasCurriculo && (
-            <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-green-500 ring-2 ring-background" />
+            <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-green-500 ring-2 ring-background" aria-hidden="true" />
           )}
         </Button>
 
@@ -90,6 +91,7 @@ export function MessageInput({ onSubmit, disabled, hasCurriculo, onUploadSuccess
           placeholder="Digite sua mensagem..."
           disabled={disabled}
           rows={1}
+          aria-label="Digite sua mensagem"
           className={cn(
             'max-h-[200px] min-h-[44px] flex-1 resize-none overflow-y-auto',
             'rounded-xl border-input bg-background py-3 text-sm',
@@ -108,8 +110,9 @@ export function MessageInput({ onSubmit, disabled, hasCurriculo, onUploadSuccess
               : 'bg-muted text-muted-foreground',
           )}
           aria-label="Enviar mensagem"
+          title="Enviar mensagem"
         >
-          <SendHorizonal className="h-5 w-5" />
+          <SendHorizonal className="h-5 w-5" aria-hidden="true" />
         </Button>
       </div>
       {showUploadPopover && (

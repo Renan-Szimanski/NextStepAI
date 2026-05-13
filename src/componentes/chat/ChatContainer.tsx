@@ -63,7 +63,6 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
   const [sessionId] = useState<string>(() => uuidv4())
   const abortControllerRef = useRef<AbortController | null>(null)
 
-  // Carregar status do currículo ao montar
   useEffect(() => {
     async function carregarStatusCurriculo() {
       try {
@@ -79,7 +78,6 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
     carregarStatusCurriculo()
   }, [])
 
-  // Efeito para recarregar mensagens quando a conversa mudar (navegação)
   useEffect(() => {
     if (historicoInicial && historicoInicial.length > 0) {
       setMensagens(converterHistoricoParaMensagens(historicoInicial))
@@ -89,15 +87,6 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
     setConversaId(conversaIdProp)
   }, [historicoInicial, conversaIdProp])
 
-  /**
-   * Salva uma mensagem no histórico (Supabase).
-   * @param papel - 'usuario' ou 'assistente'
-   * @param conteudo - Texto da mensagem
-   * @param primeiraMsgTitulo - Obrigatório se for uma nova conversa e conversaIdParam não for fornecido
-   * @param cargoAlvo - Opcional
-   * @param conversaIdParam - ID da conversa (prioridade sobre o estado)
-   * @returns O ID da conversa (novo ou existente)
-   */
   async function salvarMensagemNoHistorico(
     papel: 'usuario' | 'assistente',
     conteudo: string,
@@ -125,7 +114,6 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
     }
 
     const data = await response.json()
-    // Se a conversa ainda não existia, atualiza o estado com o novo ID
     if (!idParaUsar && data.conversaId) {
       setConversaId(data.conversaId)
       router.refresh()
@@ -134,16 +122,9 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
     return idParaUsar
   }
 
-  /**
-   * Envia uma mensagem para o agente (Pathfinder) e atualiza o estado local.
-   * @param texto - Conteúdo da mensagem do usuário
-   * @param isAutomatica - Se true, não salva no histórico (usado para mensagem de upload)
-   */
   async function enviarMensagem(texto: string, isAutomatica = false) {
     if (!texto.trim() || isStreaming) return
 
-    // Se for uma mensagem automática (após upload) e não houver conversa, não salvamos no histórico?
-    // Mas para manter o fluxo, vamos salvar normalmente.
     const novaMensagemUsuario: Mensagem = {
       id: uuidv4(),
       papel: 'user',
@@ -173,11 +154,9 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
 
     try {
       if (isNovaConversa) {
-        // Primeira interação do usuário → cria a conversa
         const novoId = await salvarMensagemNoHistorico('usuario', texto, texto.slice(0, 60), undefined, undefined)
         if (novoId) idAtual = novoId
       } else if (idAtual) {
-        // Conversa já existente
         await salvarMensagemNoHistorico('usuario', texto, undefined, undefined, idAtual)
       } else {
         console.warn('Estado inválido: sem conversaId e não é primeira mensagem')
@@ -233,11 +212,9 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
             setIsStreaming(false)
             if (respostaCompleta && idAtual) {
               try {
-                // Passa o idAtual explicitamente para evitar depender do estado
                 await salvarMensagemNoHistorico('assistente', respostaCompleta, undefined, undefined, idAtual)
                 console.log('✅ Mensagem do assistente salva')
 
-                // Se for uma conversa nova, gera título automaticamente
                 if (isNovaConversa && idAtual) {
                   console.log('🚀 Gerando título automático para conversa:', idAtual)
                   fetch('/api/planos/gerar-titulo', {
@@ -276,12 +253,7 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
     }
   }
 
-  /**
-   * Callback chamado após upload bem-sucedido do currículo.
-   * Recebe nome do arquivo e URL de leitura.
-   */
   async function handleUploadSuccess(nomeArquivo: string, urlLeitura: string) {
-    // Atualizar status de currículo
     try {
       const res = await fetch('/api/curriculo')
       if (res.ok) {
@@ -292,8 +264,7 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
       console.error(err)
     }
 
-    // Mensagem automática com link clicável
-    const mensagem = `✅ Realizei o envio do meu currículo: **\n\n📄 ${nomeArquivo}\n\n`
+    const mensagem = `✅ Realizei o envio do meu currículo: 📄 ${nomeArquivo}\n\n`
     await enviarMensagem(mensagem, true)
   }
 
@@ -304,10 +275,10 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
   }, [])
 
   return (
-    <div className="flex h-full flex-col bg-background relative">
+    <main role="main" aria-label="Conversa com o Pathfinder" className="flex h-full flex-col bg-background relative">
       <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-border/40 bg-background/80 backdrop-blur-md px-4 py-3 shadow-sm transition-colors">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
-          <Compass className="h-5 w-5" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20" aria-hidden="true">
+          <Compass className="h-5 w-5" aria-hidden="true" />
         </div>
         <div className="flex-1">
           <h1 className="text-sm font-semibold tracking-tight text-foreground">Pathfinder</h1>
@@ -316,6 +287,7 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
               className={`h-2 w-2 rounded-full ${
                 isStreaming ? 'animate-pulse bg-amber-500' : 'bg-emerald-500'
               }`}
+              aria-hidden="true"
             />
             <p className="text-xs font-medium text-muted-foreground">
               {isStreaming ? 'Processando...' : 'Mentor IA Online'}
@@ -344,6 +316,6 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
           />
         </div>
       </div>
-    </div>
+    </main>
   )
 }
