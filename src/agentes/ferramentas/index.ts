@@ -2,15 +2,13 @@
 import { consultarBancoVetorial } from './buscar-vetor'
 import { extrairTextoPdf } from './extrair-pdf'
 import { estruturarDadosCurriculo } from './estruturar-curriculo'
-
-// Futuras tools:
-// import { buscarRecursosEducacionais } from './buscar-recursos'
+import { buscarRecursosEducacionais } from './buscar-recursos'
 
 export const todasAsTools = [
   consultarBancoVetorial,
   extrairTextoPdf,
   estruturarDadosCurriculo,
-  // buscarRecursosEducacionais,
+  buscarRecursosEducacionais,
 ]
 
-export { consultarBancoVetorial, extrairTextoPdf, estruturarDadosCurriculo }
+export { consultarBancoVetorial, extrairTextoPdf, estruturarDadosCurriculo, buscarRecursosEducacionais }
