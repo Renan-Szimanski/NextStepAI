@@ -34,11 +34,16 @@ function converterHistoricoParaMensagens(historico: MensagemPersistida[]): Mensa
   }))
 }
 
+// Mensagem de boas-vindas com formatação convidativa (mantendo conteúdo original)
 const MENSAGEM_BOAS_VINDAS: Mensagem = {
   id: uuidv4(),
   papel: 'assistant',
   conteudo:
-    'Olá! Sou o **Pathfinder**, seu mentor de carreira guiado por IA. Qual cargo ou área você está mirando no momento? Posso analisar o mercado e montar um roadmap de desenvolvimento profissional sob medida para você.',
+    '**Olá!** Sou o **Pathfinder**, seu mentor de carreira guiado por IA.\n\n' +
+    '**Você tem um currículo em PDF?**\n' +
+    '- Se **sim**, faça o upload pelo botão abaixo e depois me informe seu cargo-alvo.\n' +
+    '- Se **não**, pode me dizer diretamente qual área ou cargo você está mirando.\n\n' +
+    '**Vamos começar!** 🚀',
   timestamp: Date.now(),
   criadoEm: new Date(),
 }
@@ -72,12 +77,6 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
 
   /**
    * Salva uma mensagem no histórico (Supabase).
-   * @param papel - 'usuario' ou 'assistente'
-   * @param conteudo - Texto da mensagem
-   * @param primeiraMsgTitulo - Obrigatório se for uma nova conversa e conversaIdParam não for fornecido
-   * @param cargoAlvo - Opcional
-   * @param conversaIdParam - ID da conversa (prioridade sobre o estado)
-   * @returns O ID da conversa (novo ou existente)
    */
   async function salvarMensagemNoHistorico(
     papel: 'usuario' | 'assistente',
@@ -106,7 +105,6 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
     }
 
     const data = await response.json()
-    // Se a conversa ainda não existia, atualiza o estado com o novo ID
     if (!idParaUsar && data.conversaId) {
       setConversaId(data.conversaId)
       router.refresh()
@@ -147,11 +145,9 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
 
     try {
       if (isNovaConversa) {
-        // Primeira interação do usuário → cria a conversa
         const novoId = await salvarMensagemNoHistorico('usuario', texto, texto.slice(0, 60), undefined, undefined)
         if (novoId) idAtual = novoId
       } else if (idAtual) {
-        // Conversa já existente
         await salvarMensagemNoHistorico('usuario', texto, undefined, undefined, idAtual)
       } else {
         console.warn('Estado inválido: sem conversaId e não é primeira mensagem')
@@ -207,11 +203,9 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
             setIsStreaming(false)
             if (respostaCompleta && idAtual) {
               try {
-                // Passa o idAtual explicitamente para evitar depender do estado
                 await salvarMensagemNoHistorico('assistente', respostaCompleta, undefined, undefined, idAtual)
                 console.log('✅ Mensagem do assistente salva')
 
-                // Se for uma conversa nova, gera título automaticamente
                 if (isNovaConversa && idAtual) {
                   console.log('🚀 Gerando título automático para conversa:', idAtual)
                   fetch('/api/planos/gerar-titulo', {
