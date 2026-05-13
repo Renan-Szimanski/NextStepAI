@@ -12,10 +12,17 @@ function parseThinking(content: string): { thinking: string | null; response: st
   const thinkRegex = /<thinking>([\s\S]*?)<\/thinking>/g
   let thinking = null
   let response = content
-  const matches = [...content.matchAll(thinkRegex)]
+  
+  // 🔧 Correção: converter iterador para array manualmente
+  const matches: RegExpExecArray[] = []
+  let match: RegExpExecArray | null
+  while ((match = thinkRegex.exec(content)) !== null) {
+    matches.push(match)
+  }
+  
   if (matches.length > 0) {
     thinking = matches.map(m => m[1].trim()).join('\n\n')
-    response = content.replace(thinkRegex, '').trim()
+    response = content.replace(/<thinking>[\s\S]*?<\/thinking>/g, '').trim()
   }
   return { thinking, response }
 }

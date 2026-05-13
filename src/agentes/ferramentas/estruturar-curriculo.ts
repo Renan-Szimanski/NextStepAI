@@ -3,18 +3,23 @@ import { tool } from '@langchain/core/tools'
 import { z } from 'zod'
 import { criarLLM } from '@/lib/langchain/llm'
 import { atualizarTextoCurriculo } from '@/lib/supabase/curriculo'
-import type { DadosCurriculo } from '@/tipos/curriculo'
+import type { DadosCurriculo, ExperienciaProfissional } from '@/tipos/curriculo'
 
 function truncarTexto(texto: string, limite: number = 8000): string {
   if (texto.length <= limite) return texto
   return texto.slice(0, limite) + '... [truncado]'
 }
 
-function extrairJsonDaResposta(resposta: string): any {
+function extrairJsonDaResposta(resposta: string): DadosCurriculo {
   let limpo = resposta.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
   const match = limpo.match(/\{[\s\S]*\}/)
   if (match) limpo = match[0]
-  return JSON.parse(limpo)
+  return JSON.parse(limpo) as DadosCurriculo
+}
+
+// Converte null para undefined para compatibilidade com o tipo DadosCurriculo
+function nullToUndefined<T>(value: T | null): T | undefined {
+  return value === null ? undefined : value
 }
 
 export const estruturarDadosCurriculo = tool(
@@ -65,20 +70,22 @@ Esquema esperado:
         const dados = extrairJsonDaResposta(conteudo)
 
         if (!dados || typeof dados !== 'object') throw new Error('Resposta não é objeto JSON')
+        
+        // 🔧 Converte null para undefined
         dadosEstruturados = {
-          nome: dados.nome ?? null,
-          email: dados.email ?? null,
-          telefone: dados.telefone ?? null,
+          nome: nullToUndefined(dados.nome),
+          email: nullToUndefined(dados.email),
+          telefone: nullToUndefined(dados.telefone),
           formacao: Array.isArray(dados.formacao) ? dados.formacao : [],
-          experiencias: Array.isArray(dados.experiencias) ? dados.experiencias.map((exp: any) => ({
+          experiencias: Array.isArray(dados.experiencias) ? dados.experiencias.map((exp: Partial<ExperienciaProfissional>) => ({
             cargo: exp.cargo ?? '',
             empresa: exp.empresa ?? '',
-            periodo: exp.periodo ?? null,
-            descricao: exp.descricao ?? null,
+            periodo: nullToUndefined(exp.periodo),
+            descricao: nullToUndefined(exp.descricao),
           })) : [],
           habilidades: Array.isArray(dados.habilidades) ? dados.habilidades : [],
           idiomas: Array.isArray(dados.idiomas) ? dados.idiomas : [],
-          resumo: dados.resumo ?? null,
+          resumo: nullToUndefined(dados.resumo),
         }
         sucesso = true
       } catch (err) {

@@ -48,7 +48,7 @@ export function MessageList({
           </div>
         )}
 
-        {mensagens.map((mensagem, index) => {
+        {mensagens.map((mensagem) => {
           const ehUltima = mensagem.id === ultimaMensagem?.id
           const ehAssistantStreaming = ehUltima && isStreaming && mensagem.papel === 'assistant' && !conteudoVazio
 

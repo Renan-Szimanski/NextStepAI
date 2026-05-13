@@ -339,7 +339,6 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
           <MessageInput
             onSubmit={enviarMensagem}
             disabled={isStreaming}
-            usuarioId={userId}
             hasCurriculo={hasCurriculo}
             onUploadSuccess={handleUploadSuccess}
           />
