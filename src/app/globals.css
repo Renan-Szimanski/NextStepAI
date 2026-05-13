@@ -93,8 +93,15 @@
 }
 
 /* Estilo para texto de thinking (mais opaco) */
-.thinking-text {
-  opacity: 0.7;
+/* Adicione ao final do seu globals.css */
+.thinking-block {
+  background-color: hsl(var(--muted));
+  border-left: 4px solid hsl(var(--muted-foreground) / 0.3);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
   color: hsl(var(--muted-foreground));
-  transition: opacity 0.2s ease;
+  font-size: 0.875rem;
+  font-style: italic;
+  opacity: 0.85;
 }

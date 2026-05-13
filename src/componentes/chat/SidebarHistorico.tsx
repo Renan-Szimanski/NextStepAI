@@ -15,7 +15,6 @@ import type { ConversaResumo } from '@/tipos/historico'
 
 interface SidebarHistoricoProps {
   conversas: ConversaResumo[]
-  // usuarioId não é mais necessário, pois as operações usam autenticação via cookie
 }
 
 type ConversaOptimistic = ConversaResumo & {
@@ -98,7 +97,8 @@ export function SidebarHistorico({ conversas }: SidebarHistoricoProps) {
         </p>
       </div>
 
-      <ScrollArea className="flex-1">
+      {/* ScrollArea com altura total e overflow garantido */}
+      <ScrollArea className="flex-1 h-full min-h-0">
         <div className="p-2 space-y-1">
           {optimisticConversas.length === 0 && (
             <div className="text-center text-muted-foreground text-sm py-8">

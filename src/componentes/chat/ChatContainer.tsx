@@ -34,7 +34,6 @@ function converterHistoricoParaMensagens(historico: MensagemPersistida[]): Mensa
   }))
 }
 
-// Mensagem de boas-vindas com formatação convidativa (mantendo conteúdo original)
 const MENSAGEM_BOAS_VINDAS: Mensagem = {
   id: uuidv4(),
   papel: 'assistant',
@@ -59,11 +58,26 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
   })
   const [isStreaming, setIsStreaming] = useState(false)
   const [currentToolCall, setCurrentToolCall] = useState<string | null>(null)
+  const [hasCurriculo, setHasCurriculo] = useState(false)
 
   const [sessionId] = useState<string>(() => uuidv4())
   const abortControllerRef = useRef<AbortController | null>(null)
 
-  void userId
+  // Carregar status do currículo ao montar
+  useEffect(() => {
+    async function carregarStatusCurriculo() {
+      try {
+        const res = await fetch('/api/curriculo')
+        if (res.ok) {
+          const data = await res.json()
+          setHasCurriculo(!!data.curriculo)
+        }
+      } catch (err) {
+        console.error('Erro ao verificar currículo:', err)
+      }
+    }
+    carregarStatusCurriculo()
+  }, [])
 
   // Efeito para recarregar mensagens quando a conversa mudar (navegação)
   useEffect(() => {
@@ -77,6 +91,12 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
 
   /**
    * Salva uma mensagem no histórico (Supabase).
+   * @param papel - 'usuario' ou 'assistente'
+   * @param conteudo - Texto da mensagem
+   * @param primeiraMsgTitulo - Obrigatório se for uma nova conversa e conversaIdParam não for fornecido
+   * @param cargoAlvo - Opcional
+   * @param conversaIdParam - ID da conversa (prioridade sobre o estado)
+   * @returns O ID da conversa (novo ou existente)
    */
   async function salvarMensagemNoHistorico(
     papel: 'usuario' | 'assistente',
@@ -105,6 +125,7 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
     }
 
     const data = await response.json()
+    // Se a conversa ainda não existia, atualiza o estado com o novo ID
     if (!idParaUsar && data.conversaId) {
       setConversaId(data.conversaId)
       router.refresh()
@@ -113,9 +134,16 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
     return idParaUsar
   }
 
-  async function enviarMensagem(texto: string) {
+  /**
+   * Envia uma mensagem para o agente (Pathfinder) e atualiza o estado local.
+   * @param texto - Conteúdo da mensagem do usuário
+   * @param isAutomatica - Se true, não salva no histórico (usado para mensagem de upload)
+   */
+  async function enviarMensagem(texto: string, isAutomatica = false) {
     if (!texto.trim() || isStreaming) return
 
+    // Se for uma mensagem automática (após upload) e não houver conversa, não salvamos no histórico?
+    // Mas para manter o fluxo, vamos salvar normalmente.
     const novaMensagemUsuario: Mensagem = {
       id: uuidv4(),
       papel: 'user',
@@ -145,9 +173,11 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
 
     try {
       if (isNovaConversa) {
+        // Primeira interação do usuário → cria a conversa
         const novoId = await salvarMensagemNoHistorico('usuario', texto, texto.slice(0, 60), undefined, undefined)
         if (novoId) idAtual = novoId
       } else if (idAtual) {
+        // Conversa já existente
         await salvarMensagemNoHistorico('usuario', texto, undefined, undefined, idAtual)
       } else {
         console.warn('Estado inválido: sem conversaId e não é primeira mensagem')
@@ -203,9 +233,11 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
             setIsStreaming(false)
             if (respostaCompleta && idAtual) {
               try {
+                // Passa o idAtual explicitamente para evitar depender do estado
                 await salvarMensagemNoHistorico('assistente', respostaCompleta, undefined, undefined, idAtual)
                 console.log('✅ Mensagem do assistente salva')
 
+                // Se for uma conversa nova, gera título automaticamente
                 if (isNovaConversa && idAtual) {
                   console.log('🚀 Gerando título automático para conversa:', idAtual)
                   fetch('/api/planos/gerar-titulo', {
@@ -242,6 +274,27 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
       setMensagens((prev) => prev.slice(0, -1))
       setIsStreaming(false)
     }
+  }
+
+  /**
+   * Callback chamado após upload bem-sucedido do currículo.
+   * Recebe nome do arquivo e URL de leitura.
+   */
+  async function handleUploadSuccess(nomeArquivo: string, urlLeitura: string) {
+    // Atualizar status de currículo
+    try {
+      const res = await fetch('/api/curriculo')
+      if (res.ok) {
+        const data = await res.json()
+        setHasCurriculo(!!data.curriculo)
+      }
+    } catch (err) {
+      console.error(err)
+    }
+
+    // Mensagem automática com link clicável
+    const mensagem = `✅ Realizei o envio do meu currículo: **\n\n📄 ${nomeArquivo}\n\n`
+    await enviarMensagem(mensagem, true)
   }
 
   useEffect(() => {
@@ -283,7 +336,13 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
 
       <div className="border-t border-border/40 bg-gradient-to-t from-background to-background/95 px-4 py-4 backdrop-blur-sm">
         <div className="mx-auto w-full max-w-[800px]">
-          <MessageInput onSubmit={enviarMensagem} disabled={isStreaming} />
+          <MessageInput
+            onSubmit={enviarMensagem}
+            disabled={isStreaming}
+            usuarioId={userId}
+            hasCurriculo={hasCurriculo}
+            onUploadSuccess={handleUploadSuccess}
+          />
         </div>
       </div>
     </div>

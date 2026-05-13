@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { buscarConversa } from '@/lib/supabase/historico'
 import { ChatContainer } from '@/componentes/chat/ChatContainer'
-import { UploadCurriculo } from '@/componentes/curriculo/UploadCurriculo' // ← adicionar
 
 export const dynamic = 'force-dynamic'
 
@@ -25,18 +24,13 @@ export default async function PaginaChat({ searchParams }: PaginaChatProps) {
   }
 
   return (
-    <main className="h-screen w-full overflow-hidden flex flex-col"> {/* ajuste para coluna */}
-      <div className="flex-1 overflow-hidden">
-        <ChatContainer
-          key={conversaId ?? 'nova'}
-          userId={sessao.user.id}
-          historicoInicial={historicoInicial}
-          conversaId={conversaId}
-        />
-      </div>
-      <div className="border-t p-4 bg-background">
-        <UploadCurriculo />
-      </div>
+    <main className="h-screen w-full overflow-hidden">
+      <ChatContainer
+        key={conversaId ?? 'nova'}
+        userId={sessao.user.id}
+        historicoInicial={historicoInicial}
+        conversaId={conversaId}
+      />
     </main>
   )
 }
