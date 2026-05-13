@@ -1,8 +1,24 @@
 // src/app/(dashboard)/chat/page.tsx
 import { redirect } from 'next/navigation'
+import nextDynamic from 'next/dynamic'  // ← renomeado para evitar conflito
 import { auth } from '@/lib/auth'
 import { buscarConversa } from '@/lib/supabase/historico'
-import { ChatContainer } from '@/componentes/chat/ChatContainer'
+
+const ChatContainer = nextDynamic(
+  () => import('@/componentes/chat/ChatContainer').then(mod => mod.ChatContainer),
+  {
+    loading: () => (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-pulse space-y-4 w-full max-w-[800px] px-4">
+          <div className="h-20 bg-muted rounded-lg" />
+          <div className="h-32 bg-muted rounded-lg" />
+          <div className="h-24 bg-muted rounded-lg" />
+        </div>
+      </div>
+    ),
+    ssr: false,
+  }
+)
 
 export const dynamic = 'force-dynamic'
 

@@ -10,12 +10,11 @@ import { UploadPopover } from './UploadPopover'
 interface MessageInputProps {
   onSubmit: (texto: string) => void
   disabled: boolean
-  usuarioId: string
   hasCurriculo: boolean
   onUploadSuccess: (nomeArquivo: string, urlLeitura: string) => void
 }
 
-export function MessageInput({ onSubmit, disabled, usuarioId, hasCurriculo, onUploadSuccess }: MessageInputProps) {
+export function MessageInput({ onSubmit, disabled, hasCurriculo, onUploadSuccess }: MessageInputProps) {
   const [texto, setTexto] = useState('')
   const [showUploadPopover, setShowUploadPopover] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -88,7 +87,7 @@ export function MessageInput({ onSubmit, disabled, usuarioId, hasCurriculo, onUp
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Digite sua mensagem... (Enter para enviar, Shift+Enter para nova linha)"
+          placeholder="Digite sua mensagem..."
           disabled={disabled}
           rows={1}
           className={cn(

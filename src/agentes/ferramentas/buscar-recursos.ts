@@ -9,7 +9,14 @@ const tavily = new TavilySearch({
   includeRawContent: false,
 })
 
-function formatarResultadoItem(resultado: any): string {
+// 🔧 Tipo para os resultados da Tavily
+type TavilyResult = {
+  title: string
+  url: string
+  content?: string
+}
+
+function formatarResultadoItem(resultado: TavilyResult): string {
   return `- [${resultado.title}](${resultado.url}) — ${resultado.content?.slice(0, 120) || 'sem descrição'}`
 }
 
@@ -25,17 +32,14 @@ export const buscarRecursosEducacionais = tool(
     }
     query += ' cursos, tutoriais e recursos'
 
-    // Chamada correta: passando um objeto com a propriedade 'query'
     const response = await tavily._call({ query })
 
-    // Verifica se houve erro (a resposta pode conter a propriedade 'error')
     if ('error' in response) {
       console.error('[buscarRecursos] Erro na API Tavily:', response.error)
       return `Não foi possível buscar recursos: ${response.error}`
     }
 
-    // TavilySearchResponse normalmente tem uma propriedade 'results'
-    const results = (response as any).results || []
+    const results = (response as { results: TavilyResult[] }).results || []
     if (results.length === 0) {
       return `Não encontrei recursos para "${habilidades.join(', ')}". Tente termos mais genéricos.`
     }

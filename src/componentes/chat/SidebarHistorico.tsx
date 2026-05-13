@@ -15,6 +15,7 @@ import type { ConversaResumo } from '@/tipos/historico'
 
 interface SidebarHistoricoProps {
   conversas: ConversaResumo[]
+  onItemClick?: () => void  // ← adicionado
 }
 
 type ConversaOptimistic = ConversaResumo & {
@@ -32,7 +33,7 @@ function formatarDataRelativa(dataISO: string): string {
   }
 }
 
-export function SidebarHistorico({ conversas }: SidebarHistoricoProps) {
+export function SidebarHistorico({ conversas, onItemClick }: SidebarHistoricoProps) {
   const router = useRouter()
   const [, startTransition] = useTransition()
   const [optimisticConversas, setOptimisticConversas] = useOptimistic<
@@ -119,6 +120,7 @@ export function SidebarHistorico({ conversas }: SidebarHistoricoProps) {
               >
                 <Link
                   href={`/chat?conversa=${conversa.id}`}
+                  onClick={onItemClick}  // ← adicionado
                   className={cn(
                     "block p-3 rounded-lg hover:bg-accent/50 transition-colors",
                     conversa.isDeleting && "pointer-events-none opacity-50"
