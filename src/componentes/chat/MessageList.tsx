@@ -1,3 +1,4 @@
+// src/componentes/chat/MessageList.tsx (modificado - passar isStreaming e isLast)
 'use client'
 
 import { useEffect, useRef } from 'react'
@@ -47,8 +48,9 @@ export function MessageList({
           </div>
         )}
 
-        {mensagens.map((mensagem) => {
+        {mensagens.map((mensagem, index) => {
           const ehUltima = mensagem.id === ultimaMensagem?.id
+          const ehAssistantStreaming = ehUltima && isStreaming && mensagem.papel === 'assistant' && !conteudoVazio
 
           if (ehUltima && mostrarIndicatorInicial) {
             return (
@@ -62,6 +64,8 @@ export function MessageList({
             <MessageBubble
               key={mensagem.id}
               mensagem={mensagem}
+              isStreaming={ehAssistantStreaming}
+              isLast={ehUltima}
             />
           )
         })}

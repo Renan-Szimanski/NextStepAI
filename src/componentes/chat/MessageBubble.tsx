@@ -1,3 +1,4 @@
+// src/componentes/chat/MessageBubble.tsx (modificado)
 'use client'
 
 import type { Mensagem } from '@/tipos'
@@ -7,11 +8,14 @@ import { cn } from '@/lib/utils'
 
 interface MessageBubbleProps {
   mensagem: Mensagem
+  isStreaming?: boolean  // nova prop
+  isLast?: boolean       // nova prop
 }
 
-export function MessageBubble({ mensagem }: MessageBubbleProps) {
+export function MessageBubble({ mensagem, isStreaming = false, isLast = false }: MessageBubbleProps) {
   const ehAssistant = mensagem.papel === 'assistant'
   const conteudoVazio = !mensagem.conteudo || mensagem.conteudo.trim() === ''
+  const isThinking = ehAssistant && isStreaming && isLast && conteudoVazio === false
 
   return (
     <div
@@ -47,12 +51,14 @@ export function MessageBubble({ mensagem }: MessageBubbleProps) {
             ehAssistant
               ? 'rounded-2xl rounded-bl-sm bg-muted/60 border border-border/40 px-5 py-4 text-foreground'
               : 'rounded-2xl rounded-br-sm bg-primary text-primary-foreground px-5 py-3 shadow-md',
+            // Se estiver em modo thinking, aplica cor opaca
+            isThinking && 'opacity-70 text-muted-foreground'
           )}
         >
           <div className="text-sm leading-relaxed">
             {ehAssistant ? (
               conteudoVazio ? null : (
-                <MarkdownRenderer conteudo={mensagem.conteudo} />
+                <MarkdownRenderer conteudo={mensagem.conteudo} isThinking={isThinking} />
               )
             ) : (
               <p className="whitespace-pre-wrap break-words">
