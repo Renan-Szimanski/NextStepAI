@@ -1,8 +1,7 @@
 // src/agentes/pathfinder.ts
-
 import { createReactAgent } from '@langchain/langgraph/prebuilt';
 import { criarLLM } from '@/lib/langchain/llm';
-import { consultarBancoVetorial } from '@/agentes/ferramentas/buscar-vetor';
+import { todasAsTools } from '@/agentes/ferramentas'; // ← importa todas as tools
 import { SYSTEM_PROMPT_PATHFINDER } from '@/agentes/prompts/pathfinder-system';
 import {
   HumanMessage,
@@ -33,12 +32,12 @@ const CONFIG_MEMORIA = {
  */
 export function criarAgentePathfinder(usarFallback: boolean = false) {
   const llm = criarLLM(usarFallback ? 'fallback' : 'principal');
-  const tools = [consultarBancoVetorial];
+  const tools = todasAsTools; // ← agora inclui buscarVetor e extrairTextoPdf
 
   return createReactAgent({
-    llm,                                       // ← chave correta (não "model")
+    llm,
     tools,
-    stateModifier: SYSTEM_PROMPT_PATHFINDER,   // ← chave correta (não "systemPrompt")
+    stateModifier: SYSTEM_PROMPT_PATHFINDER,
   });
 }
 
@@ -100,7 +99,6 @@ export async function converterMensagensParaLangChain(
   }
 
   // Estratégia 2: janela deslizante por tokens.
-  // Mantém as N mensagens mais recentes que cabem em `maxTokensHistorico`.
   const aparadas = await trimMessages(formatadas, {
     maxTokens: CONFIG_MEMORIA.maxTokensHistorico,
     strategy: 'last',
@@ -121,10 +119,6 @@ export async function converterMensagensParaLangChain(
 
 /**
  * Estimativa de tokens baseada na heurística de ~4 caracteres por token.
- *
- * Suficiente como teto preventivo para janela de histórico — não precisa
- * ser exato. Para precisão real, substituir por `tokenCounter: llm` no
- * `trimMessages`, ao custo de uma chamada (potencialmente de rede) por turno.
  */
 function estimarTokens(mensagens: BaseMessage[]): number {
   return mensagens.reduce((total, msg) => {

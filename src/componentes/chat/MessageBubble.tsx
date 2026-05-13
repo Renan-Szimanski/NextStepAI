@@ -7,11 +7,16 @@ import { cn } from '@/lib/utils'
 
 interface MessageBubbleProps {
   mensagem: Mensagem
+  isStreaming?: boolean   // ← adicionado
+  isLast?: boolean        // ← adicionado
 }
 
-export function MessageBubble({ mensagem }: MessageBubbleProps) {
+export function MessageBubble({ mensagem, isStreaming = false, isLast = false }: MessageBubbleProps) {
   const ehAssistant = mensagem.papel === 'assistant'
   const conteudoVazio = !mensagem.conteudo || mensagem.conteudo.trim() === ''
+
+  // Aplica opacidade durante o streaming para toda a bolha (somente para a última mensagem do assistente)
+  const isThinkingMode = ehAssistant && isStreaming && isLast && !conteudoVazio
 
   return (
     <div
@@ -47,6 +52,7 @@ export function MessageBubble({ mensagem }: MessageBubbleProps) {
             ehAssistant
               ? 'rounded-2xl rounded-bl-sm bg-muted/60 border border-border/40 px-5 py-4 text-foreground'
               : 'rounded-2xl rounded-br-sm bg-primary text-primary-foreground px-5 py-3 shadow-md',
+            isThinkingMode && 'opacity-70'   // ← apenas durante o streaming
           )}
         >
           <div className="text-sm leading-relaxed">

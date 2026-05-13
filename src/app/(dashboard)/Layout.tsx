@@ -1,5 +1,6 @@
-import { redirect } from 'next/navigation'
+// src/app/(dashboard)/layout.tsx
 import { auth } from '@/lib/auth'
+import { redirect } from 'next/navigation'
 import { Navbar } from '@/componentes/layout/Navbar'
 
 export default async function DashboardLayout({
@@ -7,18 +8,13 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const session = await auth()
-
-  if (!session?.user) {
-    redirect('/login')
-  }
+  const sessao = await auth()
+  if (!sessao?.user) redirect('/login')
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Navbar user={session.user} />
-      <main className="flex-1 flex flex-col">
-        {children}
-      </main>
+    <div className="flex min-h-screen flex-col">
+      <Navbar user={sessao.user} />
+      <div className="flex-1">{children}</div>
     </div>
   )
 }

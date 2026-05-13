@@ -1,12 +1,9 @@
 import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 import { createClient } from "@supabase/supabase-js";
 
-// Inicializa o cliente do Supabase usando as chaves que você já tem na Vercel/local
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export async function POST(req: Request) {
   try {
@@ -17,37 +14,35 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Preencha todos os campos" }, { status: 400 });
     }
 
-    // 1. Verifica se o e-mail já existe no banco
-    const { data: usuarioExistente } = await supabase
-      .from("users") // Substitua "users" pelo nome da sua tabela de usuários, se for diferente
-      .select("id")
-      .eq("email", email)
-      .single();
-
-    if (usuarioExistente) {
-      return NextResponse.json({ error: "Este e-mail já está em uso." }, { status: 400 });
+    if (senha.length < 8) {
+      return NextResponse.json({ error: "A senha deve ter pelo menos 8 caracteres" }, { status: 400 });
     }
 
-    // 2. Criptografa a senha
-    const senhaCriptografada = await bcrypt.hash(senha, 10);
-
-    // 3. Salva o novo usuário no Supabase
-    const { data: novoUsuario, error } = await supabase
-      .from("users")
-      .insert([
-        {
-          name: nome,
-          email: email,
-          password: senhaCriptografada, // Salva o hash, não a senha real!
+    // Cadastro via Supabase Auth
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password: senha,
+      options: {
+        data: {
+          name: nome,          // salva o nome no user_metadata
         },
-      ])
-      .select()
-      .single();
+      },
+    });
 
-    if (error) throw error;
+    if (error) {
+      console.error("Erro no signUp:", error);
+      if (error.message.includes("already registered")) {
+        return NextResponse.json({ error: "Este e-mail já está em uso." }, { status: 400 });
+      }
+      return NextResponse.json({ error: "Erro ao criar conta. Tente novamente." }, { status: 500 });
+    }
 
+    // Se o Supabase estiver configurado para confirmar e-mail, o usuário só conseguirá logar após verificar
     return NextResponse.json(
-      { message: "Usuário criado com sucesso", user: { id: novoUsuario.id, email: novoUsuario.email } },
+      { 
+        message: "Conta criada com sucesso!",
+        user: { id: data.user?.id, email: data.user?.email }
+      },
       { status: 201 }
     );
   } catch (error) {

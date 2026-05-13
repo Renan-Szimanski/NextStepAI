@@ -1,3 +1,4 @@
+// src/componentes/layout/Navbar.tsx
 import Link from 'next/link'
 import {
   DropdownMenu,
@@ -17,14 +18,13 @@ interface NavbarProps {
   }
 }
 
-// Gera iniciais para o fallback do avatar (ex: "João Silva" → "JS")
 function obterIniciais(nome?: string | null): string {
   if (!nome) return '?'
   return nome
     .split(' ')
     .filter(Boolean)
     .slice(0, 2)
-    .map((parte) => parte[0].toUpperCase())
+    .map(parte => parte[0].toUpperCase())
     .join('')
 }
 
@@ -33,8 +33,7 @@ export function Navbar({ user }: NavbarProps) {
     <header className="sticky top-0 z-50 w-full bg-white border-b border-gray-200">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-
-          {/* Logo */}
+          {/* Logo (clica para /chat) */}
           <Link
             href="/chat"
             className="flex items-center gap-2 font-bold text-xl text-gray-900 hover:text-gray-700 transition-colors"
@@ -81,7 +80,6 @@ export function Navbar({ user }: NavbarProps) {
               <BotaoLogout />
             </DropdownMenuContent>
           </DropdownMenu>
-
         </div>
       </div>
     </header>

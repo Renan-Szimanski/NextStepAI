@@ -91,3 +91,17 @@
 .markdown-content a {
   @apply text-primary hover:underline underline-offset-4;
 }
+
+/* Estilo para texto de thinking (mais opaco) */
+/* Adicione ao final do seu globals.css */
+.thinking-block {
+  background-color: hsl(var(--muted));
+  border-left: 4px solid hsl(var(--muted-foreground) / 0.3);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.875rem;
+  font-style: italic;
+  opacity: 0.85;
+}

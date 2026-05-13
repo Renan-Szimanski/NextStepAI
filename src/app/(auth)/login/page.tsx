@@ -1,61 +1,70 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/componentes/ui/card";
 import BotaoLoginGitHub from "@/componentes/auth/BotaoLoginGitHub";
 import BotaoLoginGoogle from "@/componentes/auth/BotaoLoginGoogle";
 import FormLoginCredenciais from "@/componentes/auth/FormLoginCredenciais";
-import Link from "next/link";
 
-export default async function LoginPage() {
+interface LoginPageProps {
+  searchParams: Promise<{ error?: string; message?: string }> | { error?: string; message?: string };
+}
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
   const session = await auth();
+  if (session?.user) redirect("/chat");
 
-  if (session?.user) {
-    redirect("/chat");
-  }
+  // Resolve searchParams (se for Promise)
+  const params = await searchParams;
+  const error = params?.error;
+  const message = params?.message;
+
+  // Não exibimos toast aqui porque é server component; os toasts serão exibidos no cliente
+  // via useEffect no FormLoginCredenciais ou em um componente cliente separado.
+  // Mas podemos passar as mensagens via props para um componente cliente.
 
   return (
-    <Card className="w-full max-w-md shadow-xl border-slate-200">
-      <CardHeader className="text-center space-y-2">
-        <CardTitle className="text-3xl font-bold tracking-tight text-slate-900">
-          NextStep<span className="text-blue-600">AI</span>
-        </CardTitle>
-        <CardDescription className="text-slate-500 text-base">
-          Entre para começar a planejar sua carreira
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Formulário de E-mail e Senha */}
-        <FormLoginCredenciais />
+    <div className="flex min-h-screen items-center justify-center p-4 bg-background">
+      <Card className="w-full max-w-md shadow-xl border-border bg-card text-card-foreground">
+        <CardHeader className="text-center space-y-2">
+          <CardTitle className="text-3xl font-bold tracking-tight">
+            NextStep<span className="text-primary">AI</span>
+          </CardTitle>
+          <CardDescription>
+            Entre para começar a planejar sua carreira
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <FormLoginCredenciais errorFromUrl={error} messageFromUrl={message} />
 
-        {/* Divisor Visual */}
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-slate-300" />
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">
+                Ou continue com
+              </span>
+            </div>
           </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-white px-2 text-slate-500">
-              Ou continue com
-            </span>
+
+          <div className="grid grid-cols-2 gap-4">
+            <BotaoLoginGitHub />
+            <BotaoLoginGoogle />
           </div>
-        </div>
 
-        {/* Botões Sociais */}
-        <div className="grid grid-cols-2 gap-4">
-          <BotaoLoginGitHub />
-          <BotaoLoginGoogle />
-        </div>
+          <p className="text-xs text-muted-foreground text-center mt-4">
+            Ao entrar, você concorda com nossos Termos de Serviço e Política de Privacidade.
+          </p>
 
-        <p className="text-xs text-slate-400 text-center mt-4">
-          Ao entrar, você concorda com nossos Termos de Serviço e Política de Privacidade.
-        </p>
-
-        <p className="text-sm text-slate-500 text-center mt-6">
-          Ainda não tem uma conta?{" "}
-          <Link href="/cadastro" className="text-blue-600 hover:underline font-medium">
-            Cadastre-se grátis
-          </Link>
-        </p>
-      </CardContent>
-    </Card>
+          <p className="text-sm text-muted-foreground text-center mt-6">
+            Ainda não tem uma conta?{" "}
+            <Link href="/cadastro" className="text-primary hover:underline font-medium">
+              Cadastre-se grátis
+            </Link>
+          </p>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
