@@ -4,7 +4,7 @@ import type { Mensagem } from '@/tipos';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { Compass, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { BotaoDownloadPdf } from './BotaoDownloadPdf';
+import { ModalRoadmap } from './ModalRoadmap';
 import { contemRoadmap } from '@/lib/detectar-roadmap';
 
 interface MessageBubbleProps {
@@ -22,8 +22,7 @@ export function MessageBubble({
   const conteudoVazio = !mensagem.conteudo || mensagem.conteudo.trim() === '';
   const isThinkingMode = ehAssistant && isStreaming && isLast && !conteudoVazio;
 
-  // Verifica se deve mostrar o botão de download
-  const mostrarBotaoDownload =
+  const mostrarRoadmapVisual =
     ehAssistant && !isStreaming && isLast && contemRoadmap(mensagem.conteudo);
 
   return (
@@ -78,9 +77,9 @@ export function MessageBubble({
             )}
           </div>
 
-          {/* Botão de download — aparece automaticamente ao fim do roadmap */}
-          {mostrarBotaoDownload && (
-            <BotaoDownloadPdf textoRoadmap={mensagem.conteudo} />
+          {/* Modal de roadmap visual — aparece automaticamente */}
+          {mostrarRoadmapVisual && (
+            <ModalRoadmap textoRoadmap={mensagem.conteudo} />
           )}
 
           <span
