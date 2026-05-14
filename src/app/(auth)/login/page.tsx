@@ -37,7 +37,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         <CardContent className="space-y-6">
           <FormLoginCredenciais errorFromUrl={error} messageFromUrl={message} />
 
-          <div className="relative">
+          {/* <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t border-border" />
             </div>
@@ -51,7 +51,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <div className="grid grid-cols-2 gap-4">
             <BotaoLoginGitHub />
             <BotaoLoginGoogle />
-          </div>
+          </div> */}
 
           <p className="text-xs text-muted-foreground text-center mt-4">
             Ao entrar, você concorda com nossos Termos de Serviço e Política de Privacidade.
