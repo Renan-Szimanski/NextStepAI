@@ -1,4 +1,3 @@
-// src/componentes/chat/MessageList.tsx (modificado - passar isStreaming e isLast)
 'use client'
 
 import { useEffect, useRef } from 'react'
@@ -48,35 +47,38 @@ export function MessageList({
           </div>
         )}
 
-        {mensagens.map((mensagem) => {
-          const ehUltima = mensagem.id === ultimaMensagem?.id
-          const ehAssistantStreaming = ehUltima && isStreaming && mensagem.papel === 'assistant' && !conteudoVazio
+        <ul role="list" className="space-y-6">
+          {mensagens.map((mensagem) => {
+            const ehUltima = mensagem.id === ultimaMensagem?.id
+            const ehAssistantStreaming = ehUltima && isStreaming && mensagem.papel === 'assistant' && !conteudoVazio
 
-          if (ehUltima && mostrarIndicatorInicial) {
+            if (ehUltima && mostrarIndicatorInicial) {
+              return (
+                <li key={mensagem.id} className="list-none">
+                  <StreamingIndicator currentToolCall={null} />
+                </li>
+              )
+            }
+
             return (
-              <div key={mensagem.id} className="animate-in fade-in slide-in-from-bottom-2">
-                 <StreamingIndicator currentToolCall={null} />
-              </div>
+              <li key={mensagem.id} className="list-none">
+                <MessageBubble
+                  mensagem={mensagem}
+                  isStreaming={ehAssistantStreaming}
+                  isLast={ehUltima}
+                />
+              </li>
             )
-          }
-
-          return (
-            <MessageBubble
-              key={mensagem.id}
-              mensagem={mensagem}
-              isStreaming={ehAssistantStreaming}
-              isLast={ehUltima}
-            />
-          )
-        })}
+          })}
+        </ul>
 
         {isStreaming && ultimaMensagem?.papel === 'user' && (
           <div className="animate-in fade-in slide-in-from-bottom-2">
-             <StreamingIndicator currentToolCall={null} />
+            <StreamingIndicator currentToolCall={null} />
           </div>
         )}
 
-        <div ref={bottomRef} className="h-px" />
+        <div ref={bottomRef} className="h-px" aria-hidden="true" />
       </div>
     </ScrollArea>
   )
