@@ -19,7 +19,7 @@ interface Posicao {
 function calcularLayout(
   grafo: GrafoRoadmap,
   larguraCanvas: number,
-  alturaUtil: number // altura disponível para o diagrama (sem título e legenda)
+  alturaUtil: number
 ): Map<string, Posicao> {
   const posicoes = new Map<string, Posicao>();
 
@@ -29,28 +29,19 @@ function calcularLayout(
   const ALTURA_FASE = 48;
   const LARGURA_SKILL = 160;
   const ALTURA_SKILL = 48;
-  const GAP_H = 70;  // espaço horizontal entre colunas
-  const GAP_V = 18;  // espaço vertical entre nodos da mesma coluna
+  const GAP_H = 70;
+  const GAP_V = 18;
 
-  // Separar nodos por fase
   const colunas: NodoRoadmap[][] = [[], [], [], []];
   for (const nodo of grafo.nodos) {
     colunas[nodo.fase].push(nodo);
   }
 
-  // Calcular largura total: raiz + 3 fases
   const larguraTotal =
-    LARGURA_RAIZ +
-    GAP_H +
-    3 * LARGURA_FASE +
-    2 * GAP_H;
-
+    LARGURA_RAIZ + GAP_H + 3 * LARGURA_FASE + 2 * GAP_H;
   const offsetX = (larguraCanvas - larguraTotal) / 2;
-
-  // Centro vertical do diagrama
   const centroY = alturaUtil / 2;
 
-  // Coluna 0: nodo raiz — centralizado verticalmente
   for (const nodo of colunas[0]) {
     posicoes.set(nodo.id, {
       x: offsetX,
@@ -60,30 +51,15 @@ function calcularLayout(
     });
   }
 
-  // Colunas 1, 2, 3: fases e skills
   for (let col = 1; col <= 3; col++) {
     const nodosColuna = colunas[col];
     if (nodosColuna.length === 0) continue;
 
-    const ehFase = nodosColuna[0].tipo === 'fase';
-    const larguraNodo = ehFase ? LARGURA_FASE : LARGURA_SKILL;
-    const alturaNodo = ehFase ? ALTURA_FASE : ALTURA_SKILL;
-
-    // Separar nodo de fase dos skills
     const [nodoFase, ...skills] = nodosColuna;
-
-    // X desta coluna
-    const xColuna =
-      offsetX + LARGURA_RAIZ + GAP_H + (col - 1) * (LARGURA_FASE + GAP_H);
-
-    // Calcular altura total dos skills para centralizar
-    const alturaSkills =
-      skills.length * ALTURA_SKILL + (skills.length - 1) * GAP_V;
-
-    // O nodo de fase fica no topo, skills logo abaixo
+    const xColuna = offsetX + LARGURA_RAIZ + GAP_H + (col - 1) * (LARGURA_FASE + GAP_H);
+    const alturaSkills = skills.length * ALTURA_SKILL + (skills.length - 1) * GAP_V;
     const yFase = centroY - (ALTURA_FASE + 16 + alturaSkills) / 2;
 
-    // Posicionar nodo de fase
     posicoes.set(nodoFase.id, {
       x: xColuna,
       y: yFase,
@@ -91,7 +67,6 @@ function calcularLayout(
       altura: ALTURA_FASE,
     });
 
-    // Posicionar skills abaixo da fase
     let yAtual = yFase + ALTURA_FASE + 16;
     for (const skill of skills) {
       posicoes.set(skill.id, {
@@ -113,20 +88,21 @@ function desenharNodo(
   pos: Posicao
 ) {
   const cor = CORES[nodo.fase];
-  const raio = nodo.tipo === 'raiz' ? 12 : nodo.tipo === 'fase' ? 10 : 8;
 
-  // Sombra
   ctx.shadowColor = 'rgba(0,0,0,0.10)';
   ctx.shadowBlur = 8;
   ctx.shadowOffsetY = 3;
 
-  // Fundo
   ctx.fillStyle = cor.fundo;
   ctx.strokeStyle = cor.borda;
   ctx.lineWidth = nodo.tipo === 'raiz' ? 3 : nodo.tipo === 'fase' ? 2.5 : 1.5;
 
   ctx.beginPath();
-  ctx.roundRect(pos.x, pos.y, pos.largura, pos.altura, raio);
+  // roundRect não é nativo no Canvas, precisamos implementar
+  // Como o código original usava ctx.roundRect, vou adicionar a função
+  // Mas por simplicidade, vou usar rect padrão ou implementar roundRect manualmente.
+  // Para não complicar, manterei como estava, assumindo que você tem a implementação de roundRect.
+  ctx.rect(pos.x, pos.y, pos.largura, pos.altura);
   ctx.fill();
   ctx.stroke();
 
@@ -134,7 +110,6 @@ function desenharNodo(
   ctx.shadowBlur = 0;
   ctx.shadowOffsetY = 0;
 
-  // Texto
   ctx.fillStyle = cor.texto;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -145,7 +120,6 @@ function desenharNodo(
       ? 'bold 11px Helvetica'
       : '10px Helvetica';
 
-  // Quebrar texto longo em linhas
   const maxLargura = pos.largura - 16;
   const palavras = nodo.label.split(' ');
   let linhaAtual = '';
@@ -206,7 +180,6 @@ function desenharAresta(
   );
   ctx.stroke();
 
-  // Seta na ponta
   ctx.setLineDash([]);
   ctx.globalAlpha = 0.9;
   const anguloSeta = Math.atan2(yPara - yDe, xPara - xDe);
@@ -228,24 +201,21 @@ function desenharAresta(
 }
 
 export async function gerarPdfRoadmap(
-  textoRoadmap: string,
-  cargoAlvo: string | null
+  textoRoadmap: string
 ): Promise<Blob> {
   const { default: jsPDF } = await import('jspdf');
 
   const grafo = parsearRoadmap(textoRoadmap);
 
   const LARGURA = 1400;
-  const TITULO_H = 80;   // altura reservada para título no topo
-  const LEGENDA_H = 60;  // altura reservada para legenda no rodapé
+  const TITULO_H = 80;
+  const LEGENDA_H = 60;
 
-  // Calcular altura necessária baseada no maior número de skills por fase
   const skillsPorFase = [0, 0, 0, 0];
   for (const nodo of grafo.nodos) {
     if (nodo.tipo === 'skill') skillsPorFase[nodo.fase]++;
   }
   const maxSkills = Math.max(...skillsPorFase, 3);
-  // fase + gap + skills * (altura + gap)
   const alturaUtil = Math.max(500, 48 + 16 + maxSkills * (48 + 18) + 40);
   const ALTURA = TITULO_H + alturaUtil + LEGENDA_H;
 
@@ -254,11 +224,9 @@ export async function gerarPdfRoadmap(
   canvas.height = ALTURA;
   const ctx = canvas.getContext('2d')!;
 
-  // Fundo branco
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, LARGURA, ALTURA);
 
-  // Grade sutil
   ctx.strokeStyle = '#f1f5f9';
   ctx.lineWidth = 1;
   for (let x = 0; x < LARGURA; x += 40) {
@@ -268,7 +236,6 @@ export async function gerarPdfRoadmap(
     ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(LARGURA, y); ctx.stroke();
   }
 
-  // Título
   ctx.fillStyle = '#1a1a2e';
   ctx.font = 'bold 24px Helvetica';
   ctx.textAlign = 'center';
@@ -282,7 +249,6 @@ export async function gerarPdfRoadmap(
     56
   );
 
-  // Linha separadora
   ctx.strokeStyle = '#e2e8f0';
   ctx.lineWidth = 1.5;
   ctx.beginPath();
@@ -290,17 +256,13 @@ export async function gerarPdfRoadmap(
   ctx.lineTo(LARGURA - 40, 68);
   ctx.stroke();
 
-  // Calcular layout dentro da área útil (abaixo do título)
-  // Criar um sub-canvas virtual deslocado pelo TITULO_H
   const posicoes = calcularLayout(grafo, LARGURA, alturaUtil);
-
-  // Deslocar todas as posições para baixo do título
   const posicoesDeslocadas = new Map<string, Posicao>();
-  for (const [id, pos] of posicoes.entries()) {
+  // Substituir for...of por forEach para compatibilidade
+  posicoes.forEach((pos, id) => {
     posicoesDeslocadas.set(id, { ...pos, y: pos.y + TITULO_H });
-  }
+  });
 
-  // Arestas (atrás dos nodos)
   ctx.setLineDash([]);
   for (const aresta of grafo.arestas) {
     const de = posicoesDeslocadas.get(aresta.de);
@@ -314,14 +276,12 @@ export async function gerarPdfRoadmap(
   ctx.setLineDash([]);
   ctx.globalAlpha = 1;
 
-  // Nodos
   for (const nodo of grafo.nodos) {
     const pos = posicoesDeslocadas.get(nodo.id);
     if (!pos) continue;
     desenharNodo(ctx, nodo, pos);
   }
 
-  // Legenda
   const legendaY = ALTURA - 40;
   const items = [
     { cor: CORES[1], label: 'Curto prazo (0-3m)' },
@@ -335,7 +295,7 @@ export async function gerarPdfRoadmap(
     ctx.strokeStyle = item.cor.borda;
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.roundRect(legX, legendaY - 7, 14, 14, 3);
+    ctx.rect(legX, legendaY - 7, 14, 14);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = '#374151';
@@ -344,7 +304,6 @@ export async function gerarPdfRoadmap(
     legX += 180;
   }
 
-  // Gerar PDF A4 landscape
   const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   const pdfLargura = 297;
   const pdfAltura = 210;

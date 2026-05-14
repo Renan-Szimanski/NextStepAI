@@ -29,13 +29,11 @@ export function ModalRoadmap({ textoRoadmap }: ModalRoadmapProps) {
     setGerandoPdf(true);
     try {
       const { gerarPdfRoadmap } = await import('@/lib/gerar-pdf-roadmap');
-      const blob = await gerarPdfRoadmap(textoRoadmap, cargoAlvo);
+      const blob = await gerarPdfRoadmap(textoRoadmap);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = cargoAlvo
-        ? `roadmap-${cargoAlvo}.pdf`
-        : 'roadmap-pathfinder.pdf';
+      a.download = cargoAlvo ? `roadmap-${cargoAlvo}.pdf` : 'roadmap-pathfinder.pdf';
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {

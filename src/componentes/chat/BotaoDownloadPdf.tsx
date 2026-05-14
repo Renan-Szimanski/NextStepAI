@@ -25,7 +25,7 @@ export function BotaoDownloadPdf({ textoRoadmap, cargoAlvo: cargoAlvoProp }: Bot
     async function gerar() {
       try {
         const { gerarPdfRoadmap } = await import('@/lib/gerar-pdf-roadmap');
-        const blob = await gerarPdfRoadmap(textoRoadmap, cargoAlvo);
+        const blob = await gerarPdfRoadmap(textoRoadmap);
         if (cancelado) return;
         urlBlobRef.current = URL.createObjectURL(blob);
         setEstado('pronto');
