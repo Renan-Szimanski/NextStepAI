@@ -1,20 +1,29 @@
-'use client'
+'use client';
 
-import type { Mensagem } from '@/tipos'
-import { MarkdownRenderer } from './MarkdownRenderer'
-import { Compass, User } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import type { Mensagem } from '@/tipos';
+import { MarkdownRenderer } from './MarkdownRenderer';
+import { Compass, User } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { ModalRoadmap } from './ModalRoadmap';
+import { contemRoadmap } from '@/lib/detectar-roadmap';
 
 interface MessageBubbleProps {
-  mensagem: Mensagem
-  isStreaming?: boolean
-  isLast?: boolean
+  mensagem: Mensagem;
+  isStreaming?: boolean;
+  isLast?: boolean;
 }
 
-export function MessageBubble({ mensagem, isStreaming = false, isLast = false }: MessageBubbleProps) {
-  const ehAssistant = mensagem.papel === 'assistant'
-  const conteudoVazio = !mensagem.conteudo || mensagem.conteudo.trim() === ''
-  const isThinkingMode = ehAssistant && isStreaming && isLast && !conteudoVazio
+export function MessageBubble({
+  mensagem,
+  isStreaming = false,
+  isLast = false,
+}: MessageBubbleProps) {
+  const ehAssistant = mensagem.papel === 'assistant';
+  const conteudoVazio = !mensagem.conteudo || mensagem.conteudo.trim() === '';
+  const isThinkingMode = ehAssistant && isStreaming && isLast && !conteudoVazio;
+
+  const mostrarRoadmapVisual =
+    ehAssistant && !isStreaming && isLast && contemRoadmap(mensagem.conteudo);
 
   return (
     <div
@@ -48,14 +57,14 @@ export function MessageBubble({ mensagem, isStreaming = false, isLast = false }:
           )}
         </div>
 
-        {/* Mensagem */}
+        {/* Conteúdo da mensagem */}
         <div
           className={cn(
             'flex flex-col gap-1 overflow-hidden transition-all',
             ehAssistant
               ? 'rounded-2xl rounded-bl-sm bg-muted/60 border border-border/40 px-5 py-4 text-foreground'
               : 'rounded-2xl rounded-br-sm bg-primary text-primary-foreground px-5 py-3 shadow-md',
-            isThinkingMode && 'opacity-70'
+            isThinkingMode && 'opacity-70',
           )}
         >
           <div className="text-sm leading-relaxed">
@@ -64,16 +73,19 @@ export function MessageBubble({ mensagem, isStreaming = false, isLast = false }:
                 <MarkdownRenderer conteudo={mensagem.conteudo} />
               )
             ) : (
-              <p className="whitespace-pre-wrap break-words">
-                {mensagem.conteudo}
-              </p>
+              <p className="whitespace-pre-wrap break-words">{mensagem.conteudo}</p>
             )}
           </div>
+
+          {/* Modal de roadmap visual — aparece automaticamente */}
+          {mostrarRoadmapVisual && (
+            <ModalRoadmap textoRoadmap={mensagem.conteudo} />
+          )}
 
           <span
             className={cn(
               'text-[10px] opacity-60 mt-1 select-none',
-              ehAssistant ? 'text-left' : 'text-right text-primary-foreground/80'
+              ehAssistant ? 'text-left' : 'text-right text-primary-foreground/80',
             )}
             aria-hidden="true"
           >
@@ -88,5 +100,5 @@ export function MessageBubble({ mensagem, isStreaming = false, isLast = false }:
         </div>
       </div>
     </div>
-  )
+  );
 }
