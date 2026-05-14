@@ -147,11 +147,11 @@ export function UploadPopover({ onUploadSuccess, onClose }: UploadPopoverProps) 
     }
   }
 
-  useEffect(() => {
-    if (uploadStatus === 'idle' && !carregando && !curriculoAtual) {
-      fileInputRef.current?.click()
-    }
-  }, [uploadStatus, carregando, curriculoAtual])
+  // useEffect(() => {
+  //   if (uploadStatus === 'idle' && !carregando && !curriculoAtual) {
+  //     fileInputRef.current?.click()
+  //   }
+  // }, [uploadStatus, carregando, curriculoAtual])
 
   return (
     <div className="absolute bottom-full right-0 mb-2 w-80 rounded-lg border bg-background shadow-lg z-50 p-4 animate-in slide-in-from-bottom-2 fade-in duration-200">
