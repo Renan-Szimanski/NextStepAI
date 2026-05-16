@@ -13,8 +13,8 @@ export type EstrategiaLLM = 'principal' | 'fallback';
  *
  * Referência: https://platform.deepseek.com/docs
  */
-const MODELO_PRINCIPAL = 'deepseek-chat';  // aponta para o modelo mais recente estável
-const MODELO_FALLBACK = 'deepseek-chat';   // mesmo modelo como fallback seguro no MVP
+const MODELO_PRINCIPAL = 'deepseek-v4-flash';  // aponta para o modelo mais recente estável
+const MODELO_FALLBACK = 'deepseek-v4-flash';   // mesmo modelo como fallback seguro no MVP
 
 const CONFIG_LLM = {
   temperatura: 0.4,
