@@ -12,9 +12,13 @@ export default async function DashboardLayout({
   if (!sessao?.user) redirect('/login')
 
   return (
-    <div className="flex min-h-screen flex-col">
+    // ✅ CORREÇÃO: Usar h-screen + overflow-hidden para controle total de scroll
+    <div className="flex flex-col h-screen overflow-hidden bg-background">
       <Navbar user={sessao.user} />
-      <div className="flex-1">{children}</div>
+      {/* ✅ CORREÇÃO: min-h-0 essencial para flex children com scroll */}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        {children}
+      </div>
     </div>
   )
 }

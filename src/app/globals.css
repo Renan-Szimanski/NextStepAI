@@ -124,3 +124,13 @@ button:focus:not(:focus-visible),
 a:focus:not(:focus-visible) {
   outline: none;
 }
+
+/* Garantir que html e body ocupem 100% da altura para que h-full funcione */
+html, body {
+  height: 100%;
+}
+
+/* Para evitar rolagem duplicada em nível de body */
+body {
+  overflow: hidden;
+}

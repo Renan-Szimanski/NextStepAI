@@ -1,4 +1,8 @@
 // src/lib/auth.ts
+
+export const runtime = 'nodejs'
+
+
 import NextAuth from "next-auth";
 import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
