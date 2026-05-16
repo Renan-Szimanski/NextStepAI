@@ -1,7 +1,6 @@
 -- 003_criar_historico.sql
 -- Criação das tabelas de histórico de conversas e mensagens
--- Autor: Dev A
--- Data: 2025-01-XX
+
 
 -- 1. Tabela conversas
 CREATE TABLE IF NOT EXISTS conversas (

@@ -1,7 +1,6 @@
 -- supabase/migrations/005_criar_progresso.sql
 -- Criação da tabela de acompanhamento de progresso do usuário
--- Autor: Dev B
--- Data: 2026-05-17
+
 
 -- 1. Tabela progresso_usuario
 CREATE TABLE IF NOT EXISTS progresso_usuario (

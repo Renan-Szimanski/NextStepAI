@@ -1,60 +1,134 @@
 # NextStepAI
 
+> Mentor de carreira automatizado baseado em IA: análise de currículo, gap analysis com mercado real e roadmap personalizado.
 
-> Aplicação web inteligente que atua como um mentor de carreira automatizado, mapeando as necessidades reais do mercado e traçando caminhos de desenvolvimento claros e acionáveis.
+[![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)](https://www.typescriptlang.org/)
+[![LangChain](https://img.shields.io/badge/LangChain-0.3-green)](https://langchain.com/)
+[![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL+pgvector-orange)](https://supabase.com/)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-> ⚠️ **AVISO:** Este arquivo é apenas um esboço inicial do `README.md` do repositório. Ele **não** é o documento oficial de entrega da Etapa 1. Para acessar a proposta, arquitetura e backlog completos (E1), acesse o [Documento da Etapa 1 do Projeto - NextStepAI](https://github.com/Renan-Szimanski/NextStepAI/blob/main/docs/Etapa%201%20-%20Proposta%20do%20Projeto/E1_NextStepAI_VeteranosCC_IA.md).
+## 🎯 Sobre o Projeto
 
-## Sobre o Projeto
+O **NextStepAI** é uma aplicação web inteligente que atua como um mentor de carreira automatizado. O usuário informa um cargo-alvo e, opcionalmente, envia seu currículo em PDF. O sistema:
 
-O **NextStepAI** é uma solução voltada para profissionais que desejam evoluir em suas áreas ou migrar de carreira. A partir de uma vaga-alvo informada pelo usuário e do envio opcional de um currículo (PDF), a aplicação utiliza Inteligência Artificial (LLMs) para interpretar requisitos e gerar um plano de ação estratégico.
+- Extrai e estrutura os dados do currículo (experiências, habilidades, formação).
+- Consulta um **banco vetorial** com centenas de vagas reais e sintéticas para entender o que o mercado exige.
+- Realiza um **Gap Analysis** (análise de lacunas) comparando o perfil do usuário com as competências mais pedidas.
+- Gera um **roadmap de estudos personalizado** (curto, médio e longo prazo) com base nas horas de estudo disponíveis e no nível de ambição (FAANG/big tech vs. mercado comum).
+- Disponibiliza automaticamente **PDF estilizado** e **diagrama interativo** do roadmap.
+- Oferece **recursos educacionais atualizados** (cursos, tutoriais) via busca na web (Tavily).
 
-A IA atua como um agente analítico (Pathfinder) capaz de:
-- **Com currículo:** Realizar um *Gap Analysis* rigoroso e identificar lacunas de competências.
-- **Sem currículo:** Construir o "Perfil Ideal" da vaga e guiar o usuário desde os fundamentos.
-- **Roadmap:** Estruturar um guia prático de desenvolvimento em curto, médio e longo prazo.
+Tudo isso com **streaming de respostas** (SSE), **histórico de conversas** salvo no Supabase, **acessibilidade WCAG 2.1 AA** e **layout responsivo**.
 
----
+## 🚀 Funcionalidades Principais
 
-## Como Executar (Em breve)
+| Funcionalidade | Descrição |
+|---|---|
+| **Upload de currículo** | Envio de PDF para Cloudflare R2 via presigned URL. |
+| **Extração de texto** | Leitura do PDF com `unpdf` (compatível com ESM). |
+| **Estruturação de dados** | LLM extrai nome, experiências, habilidades e idiomas (JSON). |
+| **Busca semântica de vagas** | Embeddings das vagas com pgvector e HuggingFace. |
+| **Gap Analysis** | Compara o perfil do usuário com exigências do mercado. |
+| **Roadmap personalizado** | Ajusta prazos conforme horas de estudo diárias (padrão: 4h) e nível de ambição (alto/normal). |
+| **PDF automático** | Geração no cliente com `jspdf` + canvas. |
+| **Diagrama interativo** | Visualização em React Flow com cliques para recursos. |
+| **Recursos educacionais** | Busca real na web (Tavily): cursos, documentação e tutoriais. |
+| **Histórico** | Conversas salvas no Supabase, retomáveis pela sidebar. |
+| **Autenticação** | GitHub OAuth ou e-mail/senha via Supabase Auth. |
+| **Acessibilidade** | WCAG 2.1 AA — 0 violações no axe-cli. |
+| **Lazy loading** | Componentes pesados carregados sob demanda. |
 
-*As instruções de instalação, configuração de variáveis de ambiente (`.env`) e execução local serão adicionadas à medida que o projeto avançar.*
+## 📦 Tecnologias
 
----
+| Camada | Tecnologias |
+|---|---|
+| **Frontend** | Next.js 14 (App Router), Tailwind CSS, shadcn/ui, React Flow |
+| **Backend IA** | LangChain.js, DeepSeek (LLM), Tavily Search |
+| **Banco de dados** | Supabase (PostgreSQL + pgvector) |
+| **Armazenamento** | Cloudflare R2 (presigned URLs) |
+| **Autenticação** | NextAuth.js v5 (GitHub, e-mail/senha) |
+| **Processamento de PDF** | `unpdf` (`pdf-parse` substituído) |
+| **Geração de PDF** | `jspdf` + canvas |
+| **Deploy** | Vercel |
 
-## Funcionalidades principais
+## 🛠️ Como Executar Localmente
 
-- **Análise de vaga-alvo** — interpreta requisitos reais de mercado via RAG
-- **Upload de currículo (PDF)** — gap analysis entre seu perfil e o mercado
-- **Roadmap personalizado** — plano de curto, médio e longo prazo
-- **Streaming em tempo real** — respostas progressivas token a token
-- **Autenticação segura** — login com e-mail/senha ou OAuth
-- **Histórico de planos** — consulte análises anteriores a qualquer momento
+### Pré-requisitos
 
----
+- Node.js 18+
+- npm ou yarn
+- Conta no Supabase (gratuita)
+- Conta no Cloudflare R2 (gratuita)
+- Chave de API do DeepSeek (ou Groq — configurável)
 
-## Stack
+### 1. Clone o repositório
 
-| Camada | Tecnologia |
-|--------|------------|
-| Frontend | Next.js 14, Tailwind CSS, shadcn/ui |
-| Backend | Next.js API Routes |
-| LLM | GPT OSS 120B 128k (via Groq) |
-| Orquestração IA | LangChain.js |
-| Banco de dados | Supabase (PostgreSQL + pgvector) |
-| Autenticação | NextAuth.js v5 |
-| Armazenamento | Cloudflare R2 |
-| Deploy | Vercel |
+```bash
+git clone https://github.com/Renan-Szimanski/NextStepAI.git
+cd NextStepAI
+```
 
----
+### 2. Instale as dependências
 
-## Status
+```bash
+npm install
+```
 
-> **Em desenvolvimento** — Este projeto está em fase inicial como parte da disciplina de Engenharia de Prompt e Aplicação em IA (8º período CC — Universidade Braz Cubas).
+### 3. Configure as variáveis de ambiente
 
----
+Copie `.env.example` para `.env.local` e preencha com suas chaves.
 
-## Equipe
+Veja os detalhes em:
+
+```txt
+./docs/configuracao/ambiente.md
+```
+
+### 4. Configure o Supabase
+
+- Crie um projeto no Supabase.
+- Execute as migrations (SQL) disponíveis em `supabase/migrations/` via SQL Editor.
+- Habilite a extensão `vector`.
+
+### 5. Popule o banco de vagas (opcional)
+
+```bash
+npm run seed:test   # 10 vagas de teste
+npm run seed:clean  # todas as vagas 
+```
+
+### 6. Inicie o servidor de desenvolvimento
+
+```bash
+npm run dev
+```
+
+### 7. Acesse
+
+```txt
+http://localhost:3000
+```
+
+## 📚 Documentação Técnica
+
+Para desenvolvedores eavaliadores, a documentação completa está disponível na pasta `./docs/`.
+
+Inclui:
+
+- Arquitetura e decisões técnicas
+- Configuração de ambiente e deploy
+- Guia de uso do agente e suas tools
+- Manual do usuário e troubleshooting
+- Relatórios de performance e acessibilidade
+
+## 🤝 Contribuição
+
+Projeto acadêmico desenvolvido pelos alunos do 8º período de Ciência da Computação da Universidade Braz Cubas.
+
+Sugestões e melhorias são **bem-vindas** via issues ou pull requests.
+
+## 👥 Equipe
 
 - [@Eduardo-Benite](https://github.com/Eduardo-Benite)
 - [@LeghoDev](https://github.com/LeghoDev)
@@ -62,4 +136,10 @@ A IA atua como um agente analítico (Pathfinder) capaz de:
 - [@RyanDiasRocha](https://github.com/RyanDiasRocha)
 - [@vvnqp](https://github.com/vvnqp)
 
+## 📄 Licença
+
+MIT
+
 ---
+
+**Última atualização:** Maio de 2026
