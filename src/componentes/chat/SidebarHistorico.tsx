@@ -1,4 +1,3 @@
-// src/componentes/chat/SidebarHistorico.tsx
 'use client'
 
 import { useOptimistic, useTransition } from 'react'
@@ -9,13 +8,12 @@ import { ptBR } from 'date-fns/locale'
 import { Plus, Trash2, Loader2, History } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/componentes/ui/button'
-import { ScrollArea } from '@/componentes/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import type { ConversaResumo } from '@/tipos/historico'
 
 interface SidebarHistoricoProps {
   conversas: ConversaResumo[]
-  onItemClick?: () => void  // ← adicionado
+  onItemClick?: () => void
 }
 
 type ConversaOptimistic = ConversaResumo & {
@@ -36,6 +34,7 @@ function formatarDataRelativa(dataISO: string): string {
 export function SidebarHistorico({ conversas, onItemClick }: SidebarHistoricoProps) {
   const router = useRouter()
   const [, startTransition] = useTransition()
+  
   const [optimisticConversas, setOptimisticConversas] = useOptimistic<
     ConversaOptimistic[],
     string
@@ -50,18 +49,14 @@ export function SidebarHistorico({ conversas, onItemClick }: SidebarHistoricoPro
     startTransition(async () => {
       setOptimisticConversas(conversaId)
       try {
-        const res = await fetch(`/api/planos/${conversaId}`, {
-          method: 'DELETE',
-        })
+        const res = await fetch(`/api/planos/${conversaId}`, { method: 'DELETE' })
         if (!res.ok) {
           const error = await res.json()
           throw new Error(error.error || 'Falha ao excluir')
         }
         toast.success('Conversa excluída')
         const currentId = new URLSearchParams(window.location.search).get('conversa')
-        if (currentId === conversaId) {
-          router.push('/chat')
-        }
+        if (currentId === conversaId) router.push('/chat')
         router.refresh()
       } catch (err) {
         toast.error(err instanceof Error ? err.message : 'Erro ao excluir')
@@ -81,85 +76,113 @@ export function SidebarHistorico({ conversas, onItemClick }: SidebarHistoricoPro
   })()
 
   return (
-    <aside className="w-80 flex-shrink-0 border-r border-border/40 bg-background/50 backdrop-blur-sm flex flex-col h-full">
-      <div className="p-4 border-b border-border/40">
+    <aside className="flex flex-col h-full w-80 shrink-0 border-r border-border/40 bg-background/50 backdrop-blur-sm">
+      
+      {/* ===== HEADER FIXO ===== */}
+      <header className="flex flex-col gap-1 p-4 border-b border-border/40 shrink-0">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold text-foreground flex items-center gap-2">
-            <History className="h-4 w-4" />
+            <History className="h-4 w-4 shrink-0" aria-hidden="true" />
             Histórico
           </h2>
-          <Button variant="ghost" size="sm" onClick={novaConversa} className="gap-1">
-            <Plus className="h-4 w-4" />
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={novaConversa} 
+            className="h-8 px-2 gap-1 shrink-0"
+          >
+            <Plus className="h-4 w-4 shrink-0" aria-hidden="true" />
             Nova
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground mt-1">
-          {optimisticConversas.length} conversa(s)
+        <p className="text-xs text-muted-foreground" aria-live="polite">
+          {optimisticConversas.length} conversa{optimisticConversas.length !== 1 ? 's' : ''}
         </p>
-      </div>
+      </header>
 
-      {/* ScrollArea com altura total e overflow garantido */}
-      <ScrollArea className="flex-1 h-full min-h-0">
-        <div className="p-2 space-y-1">
+      {/* ===== LISTA ROLÁVEL ===== */}
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+        <div className="p-2 space-y-1 pr-1">
+          
+          {/* Estado vazio */}
           {optimisticConversas.length === 0 && (
-            <div className="text-center text-muted-foreground text-sm py-8">
-              Nenhuma conversa ainda.
-              <br />
-              Clique em &quot;Nova&quot; para começar.
+            <div className="text-center text-muted-foreground text-sm py-10 px-3">
+              <History className="h-8 w-8 mx-auto mb-3 opacity-40" aria-hidden="true" />
+              <p>Nenhuma conversa ainda</p>
+              <p className="text-xs mt-1 opacity-70">Clique em &quot;Nova&quot; para começar</p>
             </div>
           )}
+
+          {/* Lista de conversas */}
           {optimisticConversas.map((conversa) => {
             const isActive = conversaAtualId === conversa.id
+            
             return (
-              <div
+              <article
                 key={conversa.id}
                 className={cn(
-                  "group relative rounded-lg transition-all",
-                  isActive && "bg-accent/50"
+                  "group relative rounded-lg transition-colors",
+                  isActive ? "bg-accent/60" : "hover:bg-accent/40"
                 )}
               >
                 <Link
                   href={`/chat?conversa=${conversa.id}`}
-                  onClick={onItemClick}  // ← adicionado
+                  onClick={onItemClick}
                   className={cn(
-                    "block p-3 rounded-lg hover:bg-accent/50 transition-colors",
-                    conversa.isDeleting && "pointer-events-none opacity-50"
+                    "flex items-center gap-3 p-3 rounded-lg min-w-0",
+                    conversa.isDeleting && "pointer-events-none opacity-60"
                   )}
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {conversa.titulo}
+                  {/* Conteúdo principal (flex-grow) */}
+                  <div className="flex-1 min-w-0 space-y-1">
+                    {/* Título */}
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {conversa.titulo?.trim() || 'Sem título'}
+                    </p>
+                    
+                    {/* Cargo alvo (opcional) */}
+                    {conversa.cargoAlvo?.trim() && (
+                      <p className="text-xs text-muted-foreground truncate">
+                        {conversa.cargoAlvo}
                       </p>
-                      {conversa.cargoAlvo && (
-                        <span className="text-xs text-muted-foreground">
-                          {conversa.cargoAlvo}
-                        </span>
-                      )}
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {formatarDataRelativa(conversa.atualizadoEm)}
-                      </p>
-                    </div>
+                    )}
+                    
+                    {/* Data relativa */}
+                    <p className="text-xs text-muted-foreground/80">
+                      {formatarDataRelativa(conversa.atualizadoEm)}
+                    </p>
                   </div>
+
+                  {/* Botão de excluir (sempre visível no hover/focus) */}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      "h-7 w-7 shrink-0 transition-opacity",
+                      "opacity-0 group-hover:opacity-100 focus:opacity-100",
+                      "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                    )}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      e.preventDefault()
+                      handleDelete(conversa.id)
+                    }}
+                    disabled={conversa.isDeleting}
+                    aria-label={`Excluir conversa: ${conversa.titulo}`}
+                  >
+                    {conversa.isDeleting ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                    )}
+                  </Button>
                 </Link>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={() => handleDelete(conversa.id)}
-                  disabled={conversa.isDeleting}
-                >
-                  {conversa.isDeleting ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Trash2 className="h-3.5 w-3.5 text-red-500" />
-                  )}
-                </Button>
-              </div>
+              </article>
             )
           })}
         </div>
-      </ScrollArea>
+      </div>
     </aside>
   )
 }

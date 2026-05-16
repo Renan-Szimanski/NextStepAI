@@ -1,5 +1,3 @@
-// src\componentes\chat\ChatContainer.tsx
-
 'use client'
 
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any */
@@ -65,7 +63,6 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
   const [sessionId] = useState<string>(() => uuidv4())
   const abortControllerRef = useRef<AbortController | null>(null)
 
-  // ── Verifica se já existe currículo ao montar o componente ──────────────
   useEffect(() => {
     async function carregarStatusCurriculo() {
       try {
@@ -256,51 +253,29 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
     }
   }
 
-  /**
-   * Chamado pelo componente de upload após o arquivo ser salvo com sucesso
-   * no R2 e o registro criado no Supabase.
-   *
-   * Bug 1 fix — dois ajustes:
-   *
-   * 1. Atualização otimista: `setHasCurriculo(true)` é chamado IMEDIATAMENTE,
-   *    antes de qualquer fetch. Isso garante que a UI reflita o estado correto
-   *    e que a mensagem automática seja enviada enquanto o estado já está atualizado.
-   *
-   * 2. Verificação assíncrona em background: o fetch para `/api/curriculo` é
-   *    disparado depois, sem bloquear o envio da mensagem. Se por algum motivo
-   *    o registro não for encontrado (improvável, pois o upload já confirmou),
-   *    o estado volta para `false` — mas a mensagem já foi enviada, e a tool
-   *    `extrair_texto_pdf` tem seu próprio retry de 500ms para cobrir o caso.
-   */
-async function handleUploadSuccess(nomeArquivo: string, urlLeitura: string) {
-  // Bug 1 fix: atualiza o estado imediatamente (antes do fetch de confirmação)
-  setHasCurriculo(true)
+  async function handleUploadSuccess(nomeArquivo: string, urlLeitura: string) {
+    setHasCurriculo(true)
 
-  // Dispara verificação de confirmação em background apenas para logging.
-  // Não reverte o estado mesmo se o servidor responder sem currículo,
-  // pois o upload já foi bem-sucedido (o backend POST /api/curriculo confirmou).
-  fetch('/api/curriculo')
-    .then((res) => {
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      return res.json()
-    })
-    .then((data) => {
-      if (!data.curriculo) {
-        console.warn(
-          '[ChatContainer] Confirmação em background: currículo não encontrado no servidor, ' +
-          'mas o upload foi confirmado anteriormente. Mantendo estado true.'
-        )
-        // Não muda o estado - setHasCurriculo continua true
-      }
-    })
-    .catch((err) => {
-      console.error('[ChatContainer] Erro ao confirmar currículo no servidor (ignorado):', err)
-      // Não reverte o estado
-    })
+    fetch('/api/curriculo')
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        return res.json()
+      })
+      .then((data) => {
+        if (!data.curriculo) {
+          console.warn(
+            '[ChatContainer] Confirmação em background: currículo não encontrado no servidor, ' +
+            'mas o upload foi confirmado anteriormente. Mantendo estado true.'
+          )
+        }
+      })
+      .catch((err) => {
+        console.error('[ChatContainer] Erro ao confirmar currículo no servidor (ignorado):', err)
+      })
 
-  const mensagem = `✅ Realizei o envio do meu currículo: 📄 ${nomeArquivo}\n\n`
-  await enviarMensagem(mensagem, true)
-}
+    const mensagem = `✅ Realizei o envio do meu currículo: 📄 ${nomeArquivo}\n\n`
+    await enviarMensagem(mensagem, true)
+  }
 
   useEffect(() => {
     return () => {
@@ -310,12 +285,12 @@ async function handleUploadSuccess(nomeArquivo: string, urlLeitura: string) {
 
   return (
     <main role="main" aria-label="Conversa com o Pathfinder" className="flex h-full flex-col bg-background relative">
-      <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-border/40 bg-background/80 backdrop-blur-md px-4 py-3 shadow-sm transition-colors">
+      <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-border/40 bg-background/80 backdrop-blur-md px-4 py-3 shadow-sm transition-colors shrink-0">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20" aria-hidden="true">
           <Compass className="h-5 w-5" aria-hidden="true" />
         </div>
-        <div className="flex-1">
-          <h1 className="text-sm font-semibold tracking-tight text-foreground">Pathfinder</h1>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-sm font-semibold tracking-tight text-foreground truncate">Pathfinder</h1>
           <div className="flex items-center gap-1.5 mt-0.5">
             <span
               className={`h-2 w-2 rounded-full ${
@@ -328,7 +303,7 @@ async function handleUploadSuccess(nomeArquivo: string, urlLeitura: string) {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           <ThemeToggle />
           <div className="border-l border-border pl-4">
             <BotaoLogout />
@@ -336,11 +311,11 @@ async function handleUploadSuccess(nomeArquivo: string, urlLeitura: string) {
         </div>
       </header>
 
-      <div className="min-h-0 flex-1 bg-background/50">
+      <div className="min-h-0 flex-1 overflow-y-auto bg-background/50">
         <MessageList mensagens={mensagens} isStreaming={isStreaming} currentToolCall={currentToolCall} />
       </div>
 
-      <div className="border-t border-border/40 bg-gradient-to-t from-background to-background/95 px-4 py-4 backdrop-blur-sm">
+      <div className="border-t border-border/40 bg-gradient-to-t from-background to-background/95 px-4 py-4 backdrop-blur-sm shrink-0">
         <div className="mx-auto w-full max-w-[800px]">
           <MessageInput
             onSubmit={enviarMensagem}
