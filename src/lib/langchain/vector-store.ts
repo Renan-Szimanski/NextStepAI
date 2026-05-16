@@ -1,34 +1,51 @@
+// src/lib/langchain/vector-store.ts
 import { supabaseAdmin } from '../supabase/server';
 import { gerarEmbedding } from './embeddings';
 import type { VagaComSimilaridade } from '@/tipos/vaga';
 
 const PREFIXO_LOG = '[VectorStore]';
 
+// Bug 2 fix: timeout máximo para cada operação remota (embedding + RPC).
+// Se qualquer await ultrapassar esse limite, lança TimeoutError em vez de ficar preso.
+const TIMEOUT_MS = 12_000; // 12 s — deixa 3 s de margem para o timeout de 15 s da tool
+
 const CONFIG_BUSCA = {
-  //topKPadrao: 5,
-  // thresholdPadrao: 0.5,
-  // queryMinimaCaracteres: 3,
-  // maxCaracteresDescricao: 800,
-  topKPadrao: 3,                // 👈 era 5 → vira 3
-  thresholdPadrao: 0.5,         // 👈 era 0.5/0.7 → 0.4 calibrado para o MiniLM
+  topKPadrao: 3,
+  thresholdPadrao: 0.5,
   queryMinimaCaracteres: 3,
-  maxCaracteresDescricao: 400,  // 👈 era 800 → vira 400
+  maxCaracteresDescricao: 400,
 } as const;
+
+/**
+ * Cria uma Promise que rejeita após `ms` milissegundos com um TimeoutError.
+ * Usada em Promise.race para impor limite de tempo em operações externas.
+ */
+function criarTimeout(ms: number, operacao: string): Promise<never> {
+  return new Promise((_, rejeitar) =>
+    setTimeout(
+      () => rejeitar(new Error(`Timeout (${ms}ms) atingido em: ${operacao}`)),
+      ms,
+    ),
+  );
+}
 
 /**
  * Busca vagas similares no banco vetorial via RPC `match_vagas` (Supabase + pgvector).
  *
  * Pipeline:
  * 1. Valida a query.
- * 2. Gera o embedding via HuggingFace MiniLM (384d).
- * 3. Chama a função SQL `match_vagas` que retorna as top-k vagas com similaridade
- *    de cosseno acima do threshold.
+ * 2. Gera o embedding via HuggingFace MiniLM (384d) — com timeout.
+ * 3. Chama a função SQL `match_vagas` — com timeout.
+ *
+ * Correção Bug 2: cada operação de I/O agora compete contra um timeout via
+ * Promise.race, evitando que a tool fique presa indefinidamente caso a API
+ * de embeddings ou o Supabase não respondam.
  *
  * @param query     - Texto em linguagem natural a ser vetorizado e buscado.
- * @param k         - Quantidade máxima de resultados (top-k). Default: 5.
+ * @param k         - Quantidade máxima de resultados (top-k). Default: 3.
  * @param threshold - Similaridade mínima (0–1). Default: 0.5.
  * @returns Array de vagas ordenadas por similaridade descendente.
- * @throws Error se a query for inválida ou a RPC falhar.
+ * @throws Error se a query for inválida, timeout ou a RPC falhar.
  */
 export async function buscarVagasSimilares(
   query: string,
@@ -43,18 +60,50 @@ export async function buscarVagasSimilares(
     `${PREFIXO_LOG} Buscando vagas para: "${query}" (k=${k}, threshold=${threshold})`,
   );
 
-  const embedding = await gerarEmbedding(query);
+  // ── Etapa 1: gerar embedding com timeout ────────────────────────────────
+  // Bug 2 fix: se a API do HuggingFace travar, a Promise.race rejeita em
+  // TIMEOUT_MS em vez de deixar o agente esperando indefinidamente.
+  let embedding: number[];
+  try {
+    embedding = await Promise.race([
+      gerarEmbedding(query),
+      criarTimeout(TIMEOUT_MS, 'gerarEmbedding'),
+    ]);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`${PREFIXO_LOG} Falha ao gerar embedding:`, msg);
+    // Relança com mensagem clara para que buscar-vetor.ts possa capturar
+    throw new Error(`Falha ao gerar embedding: ${msg}`);
+  }
 
-  const { data, error } = await supabaseAdmin.rpc('match_vagas', {
+  // ── Etapa 2: consultar pgvector com timeout ──────────────────────────────
+  // Bug 2 fix: se o Supabase não responder, a corrida garante rejeição limpa.
+  const rpcPromise = supabaseAdmin.rpc('match_vagas', {
     query_embedding: embedding,
     match_count: k,
     match_threshold: threshold,
   });
 
-  if (error) {
-    console.error(`${PREFIXO_LOG} Erro na RPC match_vagas:`, error);
+  let data: VagaComSimilaridade[] | null;
+  let rpcError: { message?: string } | null;
+
+  try {
+    const resultado = await Promise.race([
+      rpcPromise,
+      criarTimeout(TIMEOUT_MS, 'rpc match_vagas'),
+    ]);
+    data = resultado.data as VagaComSimilaridade[] | null;
+    rpcError = resultado.error as { message?: string } | null;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`${PREFIXO_LOG} Falha na RPC (timeout ou rede):`, msg);
+    throw new Error(`Falha na consulta ao banco vetorial: ${msg}`);
+  }
+
+  if (rpcError) {
+    console.error(`${PREFIXO_LOG} Erro na RPC match_vagas:`, rpcError);
     throw new Error(
-      `Falha na consulta ao banco vetorial: ${error.message ?? 'erro desconhecido'}`,
+      `Falha na consulta ao banco vetorial: ${rpcError.message ?? 'erro desconhecido'}`,
     );
   }
 

@@ -56,7 +56,7 @@ export default function FormCadastro() {
         return;
       }
 
-      toast.success("Conta criada! Verifique seu e-mail para confirmar o cadastro.");
+      toast.success("Conta criada com sucesso!");
       setTimeout(() => router.push("/login"), 2000);
     } catch {
       toast.error("Erro de conexão com o servidor.");

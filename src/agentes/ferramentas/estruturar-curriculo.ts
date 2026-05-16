@@ -1,8 +1,8 @@
-// src/agentes/ferramentas/estruturar-curriculo.ts
 import { tool } from '@langchain/core/tools'
 import { z } from 'zod'
+import { RunnableConfig } from '@langchain/core/runnables'
 import { criarLLM } from '@/lib/langchain/llm'
-import { atualizarTextoCurriculo } from '@/lib/supabase/curriculo'
+import { atualizarTextoCurriculo, buscarCurriculo } from '@/lib/supabase/curriculo'
 import type { DadosCurriculo, ExperienciaProfissional } from '@/tipos/curriculo'
 
 function truncarTexto(texto: string, limite: number = 8000): string {
@@ -17,13 +17,65 @@ function extrairJsonDaResposta(resposta: string): DadosCurriculo {
   return JSON.parse(limpo) as DadosCurriculo
 }
 
-// Converte null para undefined para compatibilidade com o tipo DadosCurriculo
 function nullToUndefined<T>(value: T | null): T | undefined {
   return value === null ? undefined : value
 }
 
+/**
+ * Gera um resumo legível dos dados estruturados para o LLM utilizar
+ * como fonte de verdade ao montar a Gap Analysis.
+ */
+function gerarResumoParaLLM(dados: DadosCurriculo): string {
+  const habilidadesTecnicas = dados.habilidades?.filter(h => 
+    !['comunicação', 'trabalho em equipe', 'liderança', 'proatividade', 'organização', 'gestão', 'planejamento', 'inglês', 'espanhol', 'francês'].includes(h.toLowerCase())
+  ) || []
+  const habilidadesComportamentais = dados.habilidades?.filter(h => 
+    ['comunicação', 'trabalho em equipe', 'liderança', 'proatividade', 'organização', 'gestão', 'planejamento'].includes(h.toLowerCase())
+  ) || []
+  const idiomas = dados.idiomas || []
+  
+  const experiencias = dados.experiencias || []
+  const resumoExperiencias = experiencias.map(exp => 
+    `- ${exp.cargo} na ${exp.empresa}${exp.periodo ? ` (${exp.periodo})` : ''}${exp.descricao ? `: ${exp.descricao.slice(0, 150)}` : ''}`
+  ).join('\n')
+
+  return `
+=== DADOS REAIS DO CURRÍCULO DO USUÁRIO (USE SOMENTE ESTES) ===
+
+**Formação acadêmica:**
+${dados.formacao?.length ? dados.formacao.map(f => `- ${f}`).join('\n') : '- Nenhuma formação listada'}
+
+**Experiências profissionais:**
+${resumoExperiencias || '- Nenhuma experiência listada'}
+
+**Habilidades técnicas:**
+${habilidadesTecnicas.length ? habilidadesTecnicas.map(h => `- ${h}`).join('\n') : '- Nenhuma habilidade técnica listada'}
+
+**Habilidades comportamentais:**
+${habilidadesComportamentais.length ? habilidadesComportamentais.map(h => `- ${h}`).join('\n') : '- Nenhuma habilidade comportamental listada'}
+
+**Idiomas:**
+${idiomas.length ? idiomas.map(i => `- ${i}`).join('\n') : '- Nenhum idioma listado'}
+
+**Nome:** ${dados.nome || 'Não informado'}
+**Email:** ${dados.email || 'Não informado'}
+
+⚠️ IMPORTANTE: Estas são as ÚNICAS informações que você tem sobre o usuário. 
+NÃO invente habilidades, experiências, formação ou tecnologias que não estão nesta lista.
+Se uma competência exigida pelo mercado não estiver aqui, trate como lacuna.
+`
+}
+
 export const estruturarDadosCurriculo = tool(
-  async ({ textoCurriculo, usuarioId }: { textoCurriculo: string; usuarioId: string }) => {
+  async ({ textoCurriculo }: { textoCurriculo: string }, config?: RunnableConfig) => {
+    const configurable = config?.configurable as Record<string, unknown> | undefined
+    const usuarioId = configurable?.usuarioId as string | undefined
+
+    if (!usuarioId) {
+      console.error('[estruturarDadosCurriculo] usuarioId não encontrado no config.')
+      return 'Não foi possível identificar o usuário. Por favor, faça login novamente.'
+    }
+
     if (!textoCurriculo || textoCurriculo.trim().length === 0) {
       return 'Erro: texto do currículo vazio. Execute extrair_texto_pdf primeiro.'
     }
@@ -70,8 +122,7 @@ Esquema esperado:
         const dados = extrairJsonDaResposta(conteudo)
 
         if (!dados || typeof dados !== 'object') throw new Error('Resposta não é objeto JSON')
-        
-        // 🔧 Converte null para undefined
+
         dadosEstruturados = {
           nome: nullToUndefined(dados.nome),
           email: nullToUndefined(dados.email),
@@ -98,7 +149,6 @@ Esquema esperado:
       return `Falha ao estruturar o currículo: ${ultimoErro}. O texto extraído pode estar mal formatado.`
     }
 
-    const { buscarCurriculo } = await import('@/lib/supabase/curriculo')
     const curriculo = await buscarCurriculo(usuarioId)
     if (!curriculo) {
       return 'Nenhum currículo encontrado para este usuário. Faça upload primeiro.'
@@ -111,19 +161,22 @@ Esquema esperado:
       return `Erro ao salvar dados estruturados no banco: ${err instanceof Error ? err.message : 'desconhecido'}`
     }
 
-    const numExperiencias = dadosEstruturados.experiencias.length
-    const numHabilidades = dadosEstruturados.habilidades.length
-    const numIdiomas = dadosEstruturados.idiomas.length
-    const avisoTruncado = foiTruncado ? ' (texto truncado, algumas informações podem faltar)' : ''
+    // Gera o resumo para o LLM usar na resposta
+    const resumo = gerarResumoParaLLM(dadosEstruturados)
+    const avisoTruncado = foiTruncado ? ' (o texto original foi truncado, algumas informações podem faltar)' : ''
 
-    return `Currículo estruturado com sucesso${avisoTruncado}. Encontrado: ${numExperiencias} experiência(s), ${numHabilidades} habilidade(s), ${numIdiomas} idioma(s).`
+    // Retorna tanto uma mensagem de sucesso quanto o resumo estruturado
+    return `✅ Currículo estruturado com sucesso${avisoTruncado}.
+
+${resumo}
+
+Agora você pode usar as informações acima para gerar a Gap Analysis.`
   },
   {
     name: 'estruturar_dados_curriculo',
-    description: `Analisa o texto bruto de um currículo e extrai informações estruturadas (experiências, habilidades, formação, idiomas). Use após extrair_texto_pdf, antes de gerar o gap analysis.`,
+    description: `Analisa o texto bruto de um currículo e extrai informações estruturadas (experiências, habilidades, formação, idiomas). Use após extrair_texto_pdf, antes de gerar o gap analysis. Não é necessário fornecer argumentos – o ID do usuário é obtido automaticamente. Retorna os dados reais do currículo para você usar na análise.`,
     schema: z.object({
       textoCurriculo: z.string().describe('Texto bruto extraído do PDF do currículo'),
-      usuarioId: z.string().describe('ID do usuário para salvar os dados estruturados'),
     }),
   }
 )

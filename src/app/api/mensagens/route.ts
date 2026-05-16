@@ -1,3 +1,5 @@
+// src/app/api/mensagens/route.ts
+
 /**
  * Endpoint de chat com streaming SSE (Server-Sent Events).
  *
@@ -11,6 +13,11 @@
  *   3. Cria um ReadableStream que consome processarMensagem().
  *   4. Retorna Response com headers SSE corretos.
  *   5. Cancela o stream se o cliente abortar (req.signal).
+ *
+ * Bug 1 fix: o usuarioId (obtido aqui, onde auth() tem acesso aos cookies
+ * da requisição HTTP) agora é passado explicitamente para processarMensagem().
+ * As tools não chamam mais auth() internamente — o que falhava silenciosamente
+ * dentro do contexto assíncrono de streaming do LangGraph.
  */
 
 import { z } from 'zod';
@@ -45,10 +52,6 @@ const requestSchema = z.object({
 // Helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Cria uma resposta JSON simples (para erros 4xx).
- * Não vazamos stack traces nem detalhes internos.
- */
 function respostaJson(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -56,9 +59,6 @@ function respostaJson(body: unknown, status: number): Response {
   });
 }
 
-/**
- * Serializa um evento no formato SSE: `data: <json>\n\n`.
- */
 function formatarEventoSSE(evento: unknown, encoder: TextEncoder): Uint8Array {
   return encoder.encode(`data: ${JSON.stringify(evento)}\n\n`);
 }
@@ -69,10 +69,22 @@ function formatarEventoSSE(evento: unknown, encoder: TextEncoder): Uint8Array {
 export async function POST(req: Request): Promise<Response> {
   // -------------------------------------------------------------------------
   // 1. Validação de sessão
+  // auth() só tem acesso aos cookies aqui, no handler HTTP.
+  // Por isso o usuarioId é extraído neste ponto e repassado adiante —
+  // não dentro das tools, onde o contexto de requisição já não existe.
   // -------------------------------------------------------------------------
   const sessao = await auth();
   if (!sessao?.user) {
     return respostaJson({ error: 'Não autenticado' }, 401);
+  }
+
+  // Bug 1 fix: extrai o usuarioId aqui, onde auth() funciona corretamente.
+  const usuarioId =
+    (sessao.user as { id?: string }).id ?? sessao.user.email ?? 'desconhecido';
+
+  if (!usuarioId || usuarioId === 'desconhecido') {
+    console.error('[api/mensagens] sessão sem id de usuário válido:', sessao.user);
+    return respostaJson({ error: 'Sessão inválida' }, 401);
   }
 
   // -------------------------------------------------------------------------
@@ -98,9 +110,6 @@ export async function POST(req: Request): Promise<Response> {
 
   const { messages, sessionId } = parseado.data;
 
-  // Log estruturado da requisição (sem conteúdo das mensagens, por privacidade).
-  const usuarioId =
-    (sessao.user as { id?: string }).id ?? sessao.user.email ?? 'desconhecido';
   console.info('[api/mensagens] requisição recebida', {
     usuario: usuarioId,
     totalMensagens: messages.length,
@@ -114,7 +123,6 @@ export async function POST(req: Request): Promise<Response> {
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      // Flag para evitar enqueue após close (caso o cliente aborte no meio).
       let fechado = false;
 
       const fechar = () => {
@@ -127,7 +135,6 @@ export async function POST(req: Request): Promise<Response> {
         }
       };
 
-      // Tratamento de abort do cliente (fechou a aba, navegou, etc.).
       const onAbort = () => {
         console.info('[api/mensagens] cliente abortou a conexão', {
           sessionId,
@@ -143,14 +150,14 @@ export async function POST(req: Request): Promise<Response> {
       req.signal.addEventListener('abort', onAbort, { once: true });
 
       try {
-        for await (const evento of processarMensagem(messages as Mensagem[])) {
+        // Bug 1 fix: passa usuarioId explicitamente para o orquestrador,
+        // que o repassa para as tools via argumento — sem depender de auth()
+        // dentro do contexto assíncrono do LangGraph.
+        for await (const evento of processarMensagem(messages as Mensagem[], usuarioId)) {
           if (fechado || req.signal.aborted) break;
           controller.enqueue(formatarEventoSSE(evento, encoder));
         }
-        // REMOVIDO: evento `done` duplicado com chave `tipo` errada.
-        // O orquestrador já emite { type: 'done' } corretamente.
       } catch (erro) {
-        // Log completo no servidor, mas envia mensagem genérica ao cliente.
         console.error('[api/mensagens] erro durante streaming', {
           sessionId,
           usuario: usuarioId,
@@ -182,7 +189,6 @@ export async function POST(req: Request): Promise<Response> {
       }
     },
 
-    // Chamado quando o consumidor (Response) cancela o stream.
     cancel(motivo) {
       console.info('[api/mensagens] stream cancelado', {
         sessionId,
@@ -200,7 +206,6 @@ export async function POST(req: Request): Promise<Response> {
       'Content-Type': 'text/event-stream; charset=utf-8',
       'Cache-Control': 'no-cache, no-transform',
       Connection: 'keep-alive',
-      // Desabilita buffering em proxies reversos (Nginx, Vercel edge, etc.).
       'X-Accel-Buffering': 'no',
     },
   });
