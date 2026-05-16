@@ -1,7 +1,7 @@
 'use client'
 
 import { useSession, signIn, signOut } from 'next-auth/react'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/componentes/ui/avatar'
 import { Button } from '@/componentes/ui/button'
 import {
   DropdownMenu,
@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   DropdownMenuItem,
-} from '@/components/ui/dropdown-menu'
+} from '@/componentes/ui/dropdown-menu'
 import { LogOut, LogIn, Loader2 } from 'lucide-react'
 
 // Gera iniciais para o fallback do avatar

@@ -2,8 +2,6 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/componentes/ui/card";
-import BotaoLoginGitHub from "@/componentes/auth/BotaoLoginGitHub";
-import BotaoLoginGoogle from "@/componentes/auth/BotaoLoginGoogle";
 import FormLoginCredenciais from "@/componentes/auth/FormLoginCredenciais";
 
 interface LoginPageProps {

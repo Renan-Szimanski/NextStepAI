@@ -1,21 +1,28 @@
+// src/componentes/chat/DiagramaRoadmapSvg.tsx
+
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useRef, useCallback } from 'react';
 import { parsearRoadmap, NodoRoadmap, GrafoRoadmap } from '@/lib/parsear-roadmap';
+import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
+import { Button } from '@/componentes/ui/button';
 
 interface DiagramaRoadmapSvgProps {
   textoRoadmap: string;
 }
 
-const LARGURA_RAIZ = 280;
-const ALTURA_RAIZ = 120;
-const LARGURA_FASE = 260;
-const ALTURA_FASE = 72;
-const LARGURA_SKILL = 250;
-const ALTURA_SKILL = 64;
-const GAP_H = 120;
-const GAP_V = 24;
-const PADDING_V = 60;
+const CONFIG_LAYOUT = {
+  LARGURA_RAIZ: 320,
+  ALTURA_RAIZ: 100,
+  LARGURA_FASE: 300,
+  ALTURA_FASE: 60,
+  LARGURA_SKILL: 280,
+  ALTURA_SKILL: 50,
+  GAP_H: 100,
+  GAP_V: 16,
+  PADDING_V: 80,
+  MAX_SKILLS_POR_COLUNA: 8,
+};
 
 const ESTILOS_FASE: Record<number, {
   fundo: string;
@@ -41,14 +48,14 @@ const ESTILOS_FASE: Record<number, {
     borda: 'hsl(152 76% 34%)',
     texto: 'hsl(152 60% 13%)',
     aresta: 'hsl(152 76% 34%)',
-    dashArray: '8 5',
+    dashArray: '6 4',
   },
   3: {
     fundo: 'hsl(213 80% 88%)',
     borda: 'hsl(213 94% 52%)',
     texto: 'hsl(213 60% 18%)',
     aresta: 'hsl(213 94% 52%)',
-    dashArray: '8 5',
+    dashArray: '6 4',
   },
 };
 
@@ -66,70 +73,71 @@ function calcularLayout(grafo: GrafoRoadmap): {
 } {
   const posicoes = new Map<string, Posicao>();
   const colunas: NodoRoadmap[][] = [[], [], [], []];
-  for (const nodo of grafo.nodos) colunas[nodo.fase].push(nodo);
+  
+  for (const nodo of grafo.nodos) {
+    colunas[nodo.fase].push(nodo);
+  }
 
   const skillsPorFase = colunas.map((c) => c.filter((n) => n.tipo === 'skill').length);
-  const maxSkills = Math.max(...skillsPorFase, 3);
+  const maxSkills = Math.min(Math.max(...skillsPorFase, 3), CONFIG_LAYOUT.MAX_SKILLS_POR_COLUNA);
 
   const alturaUtil =
-    PADDING_V +
-    ALTURA_FASE +
-    20 +
-    maxSkills * (ALTURA_SKILL + GAP_V) +
-    PADDING_V;
+    CONFIG_LAYOUT.PADDING_V +
+    CONFIG_LAYOUT.ALTURA_FASE +
+    30 +
+    maxSkills * (CONFIG_LAYOUT.ALTURA_SKILL + CONFIG_LAYOUT.GAP_V) +
+    CONFIG_LAYOUT.PADDING_V;
 
   const larguraTotal =
-    40 +
-    LARGURA_RAIZ +
-    GAP_H +
-    3 * LARGURA_FASE +
-    2 * GAP_H +
-    40;
+    60 +
+    CONFIG_LAYOUT.LARGURA_RAIZ +
+    CONFIG_LAYOUT.GAP_H +
+    3 * CONFIG_LAYOUT.LARGURA_FASE +
+    2 * CONFIG_LAYOUT.GAP_H +
+    60;
 
-  const alturaTotal = Math.max(alturaUtil, ALTURA_RAIZ + 2 * PADDING_V);
+  const alturaTotal = Math.max(alturaUtil, CONFIG_LAYOUT.ALTURA_RAIZ + 2 * CONFIG_LAYOUT.PADDING_V);
   const centroY = alturaTotal / 2;
-  const offsetX = 40;
+  const offsetX = 60;
 
-  // Raiz — centralizada verticalmente
   for (const nodo of colunas[0]) {
     posicoes.set(nodo.id, {
       x: offsetX,
-      y: centroY - ALTURA_RAIZ / 2,
-      largura: LARGURA_RAIZ,
-      altura: ALTURA_RAIZ,
+      y: centroY - CONFIG_LAYOUT.ALTURA_RAIZ / 2,
+      largura: CONFIG_LAYOUT.LARGURA_RAIZ,
+      altura: CONFIG_LAYOUT.ALTURA_RAIZ,
     });
   }
 
-  // Fases 1-3
   for (let col = 1; col <= 3; col++) {
     const nodosCol = colunas[col];
     if (!nodosCol.length) continue;
 
     const [fase, ...skills] = nodosCol;
     const xCol =
-      offsetX + LARGURA_RAIZ + GAP_H + (col - 1) * (LARGURA_FASE + GAP_H);
+      offsetX + CONFIG_LAYOUT.LARGURA_RAIZ + CONFIG_LAYOUT.GAP_H + (col - 1) * (CONFIG_LAYOUT.LARGURA_FASE + CONFIG_LAYOUT.GAP_H);
 
     const alturaSkills =
-      skills.length * ALTURA_SKILL + Math.max(0, skills.length - 1) * GAP_V;
-    const blocoTotal = ALTURA_FASE + 20 + alturaSkills;
+      skills.length * CONFIG_LAYOUT.ALTURA_SKILL + Math.max(0, skills.length - 1) * CONFIG_LAYOUT.GAP_V;
+    const blocoTotal = CONFIG_LAYOUT.ALTURA_FASE + 30 + alturaSkills;
     const yFase = centroY - blocoTotal / 2;
 
     posicoes.set(fase.id, {
       x: xCol,
       y: yFase,
-      largura: LARGURA_FASE,
-      altura: ALTURA_FASE,
+      largura: CONFIG_LAYOUT.LARGURA_FASE,
+      altura: CONFIG_LAYOUT.ALTURA_FASE,
     });
 
-    let yAtual = yFase + ALTURA_FASE + 20;
+    let yAtual = yFase + CONFIG_LAYOUT.ALTURA_FASE + 30;
     for (const skill of skills) {
       posicoes.set(skill.id, {
         x: xCol,
         y: yAtual,
-        largura: LARGURA_SKILL,
-        altura: ALTURA_SKILL,
+        largura: CONFIG_LAYOUT.LARGURA_SKILL,
+        altura: CONFIG_LAYOUT.ALTURA_SKILL,
       });
-      yAtual += ALTURA_SKILL + GAP_V;
+      yAtual += CONFIG_LAYOUT.ALTURA_SKILL + CONFIG_LAYOUT.GAP_V;
     }
   }
 
@@ -144,6 +152,7 @@ function TextoNodo({
   altura,
   cor,
   tipo,
+  concluido,
 }: {
   label: string;
   x: number;
@@ -151,11 +160,12 @@ function TextoNodo({
   largura: number;
   altura: number;
   cor: string;
-  tipo: 'raiz' | 'fase' | 'skill';
+  tipo: 'raiz' | 'fase' | 'skill'; // ← Tipagem compatível com NodoRoadmap.tipo
+  concluido?: boolean;
 }) {
-  const fontSize = tipo === 'raiz' ? 16 : tipo === 'fase' ? 14 : 13;
+  const fontSize = tipo === 'raiz' ? 16 : tipo === 'fase' ? 14 : 12;
   const fontWeight = tipo === 'skill' ? 'normal' : 'bold';
-  const maxChars = Math.floor(largura / (fontSize * 0.58));
+  const maxChars = Math.floor(largura / (fontSize * 0.6));
 
   const palavras = label.split(' ');
   const linhas: string[] = [];
@@ -189,6 +199,7 @@ function TextoNodo({
           fontWeight={fontWeight}
           fontFamily="system-ui, -apple-system, sans-serif"
         >
+          {concluido && tipo === 'skill' && '✓ '}
           {linha}
         </text>
       ))}
@@ -199,9 +210,12 @@ function TextoNodo({
 function Nodo({ nodo, pos }: { nodo: NodoRoadmap; pos: Posicao }) {
   const estilo = ESTILOS_FASE[nodo.fase];
   const raio = nodo.tipo === 'raiz' ? 16 : nodo.tipo === 'fase' ? 12 : 10;
+  
+  const opacidade = nodo.concluido ? 0.7 : 1;
+  const dashArray = nodo.concluido && nodo.tipo === 'skill' ? '4 4' : undefined;
 
   return (
-    <g>
+    <g opacity={opacidade}>
       <rect
         x={pos.x}
         y={pos.y}
@@ -212,6 +226,7 @@ function Nodo({ nodo, pos }: { nodo: NodoRoadmap; pos: Posicao }) {
         fill={estilo.fundo}
         stroke={estilo.borda}
         strokeWidth={nodo.tipo === 'raiz' ? 3 : nodo.tipo === 'fase' ? 2.5 : 1.5}
+        strokeDasharray={dashArray}
         filter="url(#sombra)"
       />
       <TextoNodo
@@ -222,7 +237,11 @@ function Nodo({ nodo, pos }: { nodo: NodoRoadmap; pos: Posicao }) {
         altura={pos.altura}
         cor={estilo.texto}
         tipo={nodo.tipo}
+        concluido={nodo.concluido}
       />
+      {nodo.concluido && nodo.tipo === 'skill' && (
+        <title>Habilidade já possuída (do currículo)</title>
+      )}
     </g>
   );
 }
@@ -231,10 +250,12 @@ function Aresta({
   de,
   para,
   fasePara,
+  concluido,
 }: {
   de: Posicao;
   para: Posicao;
   fasePara: number;
+  concluido?: boolean;
 }) {
   const estilo = ESTILOS_FASE[fasePara];
 
@@ -254,12 +275,12 @@ function Aresta({
   const ay2 = yPara - tam * Math.sin(ang + Math.PI / 6);
 
   return (
-    <g opacity={0.8}>
+    <g opacity={concluido ? 0.4 : 0.8}>
       <path
         d={d}
         fill="none"
         stroke={estilo.aresta}
-        strokeWidth={2}
+        strokeWidth={concluido ? 1.5 : 2}
         strokeDasharray={estilo.dashArray}
       />
       <polygon
@@ -277,18 +298,110 @@ export function DiagramaRoadmapSvg({ textoRoadmap }: DiagramaRoadmapSvgProps) {
     return { grafo, posicoes, larguraTotal, alturaTotal };
   }, [textoRoadmap]);
 
+  const [zoom, setZoom] = useState(0.7);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  const handleZoomIn = useCallback(() => {
+    setZoom(z => Math.min(z + 0.1, 1.5));
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    setZoom(z => Math.max(z - 0.1, 0.3));
+  }, []);
+
+  const handleReset = useCallback(() => {
+    setZoom(0.7);
+    setPan({ x: 0, y: 0 });
+  }, []);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.target === svgRef.current || (e.target as Element).tagName === 'rect') {
+      setIsDragging(true);
+      setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+    }
+  }, [pan]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (isDragging) {
+      setPan({
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y,
+      });
+    }
+  }, [isDragging, dragStart]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.05 : 0.05;
+    setZoom(z => Math.max(0.3, Math.min(1.5, z + delta)));
+  }, []);
+
+  const totalSkills = grafo.nodos.filter(n => n.tipo === 'skill').length;
+  const skillsConcluidas = grafo.nodos.filter(n => n.tipo === 'skill' && n.concluido).length;
+
   return (
-    // Wrapper com scroll horizontal para mobile
-    <div style={{ overflowX: 'auto', overflowY: 'auto', width: '100%' }}>
+    <div className="relative w-full h-full overflow-hidden bg-muted/30">
+      <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+        <Button
+          size="icon"
+          variant="outline"
+          onClick={handleZoomIn}
+          className="h-8 w-8 bg-background/90 backdrop-blur"
+        >
+          <ZoomIn className="h-4 w-4" />
+        </Button>
+        <Button
+          size="icon"
+          variant="outline"
+          onClick={handleZoomOut}
+          className="h-8 w-8 bg-background/90 backdrop-blur"
+        >
+          <ZoomOut className="h-4 w-4" />
+        </Button>
+        <Button
+          size="icon"
+          variant="outline"
+          onClick={handleReset}
+          className="h-8 w-8 bg-background/90 backdrop-blur"
+        >
+          <Maximize className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="absolute top-4 left-4 z-10 flex gap-4 bg-background/90 backdrop-blur px-3 py-2 rounded-lg shadow-sm border">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-emerald-500/70" />
+          <span className="text-xs font-medium">Concluída ({skillsConcluidas})</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full border-2 border-primary" />
+          <span className="text-xs font-medium">A desenvolver ({totalSkills - skillsConcluidas})</span>
+        </div>
+        <div className="text-xs text-muted-foreground ml-2">
+          Total: {totalSkills} skills
+        </div>
+      </div>
+
       <svg
+        ref={svgRef}
         viewBox={`0 0 ${larguraTotal} ${alturaTotal}`}
-        // Largura mínima fixa para nunca comprimir em mobile
+        className="w-full h-full cursor-move"
         style={{
-          display: 'block',
           minWidth: `${larguraTotal}px`,
-          height: `${alturaTotal}px`,
-          maxHeight: '70vh',
+          minHeight: `${alturaTotal}px`,
         }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onWheel={handleWheel}
         aria-label={`Diagrama de roadmap: ${grafo.cargoAlvo}`}
       >
         <defs>
@@ -306,24 +419,41 @@ export function DiagramaRoadmapSvg({ textoRoadmap }: DiagramaRoadmapSvgProps) {
           </pattern>
         </defs>
 
-        <rect width={larguraTotal} height={alturaTotal} fill="url(#grade)" />
+        <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
+          <rect 
+            width={larguraTotal} 
+            height={alturaTotal} 
+            fill="url(#grade)" 
+            className="text-foreground"
+          />
 
-        {/* Arestas */}
-        {grafo.arestas.map((aresta, i) => {
-          const de = posicoes.get(aresta.de);
-          const para = posicoes.get(aresta.para);
-          const nodoPara = grafo.nodos.find((n) => n.id === aresta.para);
-          if (!de || !para || !nodoPara) return null;
-          return <Aresta key={i} de={de} para={para} fasePara={nodoPara.fase} />;
-        })}
+          {grafo.arestas.map((aresta, i) => {
+            const de = posicoes.get(aresta.de);
+            const para = posicoes.get(aresta.para);
+            const nodoPara = grafo.nodos.find((n) => n.id === aresta.para);
+            if (!de || !para || !nodoPara) return null;
+            return (
+              <Aresta 
+                key={i} 
+                de={de} 
+                para={para} 
+                fasePara={nodoPara.fase}
+                concluido={nodoPara.concluido}
+              />
+            );
+          })}
 
-        {/* Nodos */}
-        {grafo.nodos.map((nodo) => {
-          const pos = posicoes.get(nodo.id);
-          if (!pos) return null;
-          return <Nodo key={nodo.id} nodo={nodo} pos={pos} />;
-        })}
+          {grafo.nodos.map((nodo) => {
+            const pos = posicoes.get(nodo.id);
+            if (!pos) return null;
+            return <Nodo key={nodo.id} nodo={nodo} pos={pos} />;
+          })}
+        </g>
       </svg>
+
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs text-muted-foreground bg-background/80 backdrop-blur px-3 py-1.5 rounded-full border">
+        Arraste para mover • Scroll para zoom
+      </div>
     </div>
   );
 }
