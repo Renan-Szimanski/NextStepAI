@@ -22,7 +22,7 @@ Bem-vindo ao **NextStepAI**, seu mentor de carreira automatizado. Este guia expl
 
 ## 1. Criando sua conta
 
-1. Acesse `https://nextstepai.vercel.app`.
+1. Acesse `https://next-step-ai-9pe1.vercel.app/`.
 2. Clique em **“Criar conta”** ou **“Registrar”**.
 3. Preencha seu **e-mail** e **senha** (mínimo 6 caracteres).
 4. Você receberá um e‑mail de confirmação do Supabase. Clique no link para ativar sua conta.
