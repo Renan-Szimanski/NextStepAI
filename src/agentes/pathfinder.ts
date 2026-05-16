@@ -21,7 +21,7 @@ const PREFIXO_LOG = '[Pathfinder]';
  *   Ajustar conforme a janela do modelo principal e o custo/latência tolerados.
  */
 const CONFIG_MEMORIA = {
-  maxTokensHistorico: 6000,
+  maxTokensHistorico: 18000,
 } as const;
 
 /**

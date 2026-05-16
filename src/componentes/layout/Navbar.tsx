@@ -5,8 +5,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+} from '@/componentes/ui/dropdown-menu'
+import { Avatar, AvatarFallback, AvatarImage } from '@/componentes/ui/avatar'
 import { BotaoLogout } from './BotaoLogout'
 
 interface NavbarProps {
