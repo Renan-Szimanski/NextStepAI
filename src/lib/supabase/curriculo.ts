@@ -17,7 +17,7 @@ export async function salvarCurriculo(dados: NovoCurriculo): Promise<string> {
         texto_extraido: null,
         dados_estruturados: null,
       },
-      { onConflict: 'usuario_id' }
+      { onConflict: 'usuario_id' },
     )
     .select('id')
     .single()
@@ -26,13 +26,14 @@ export async function salvarCurriculo(dados: NovoCurriculo): Promise<string> {
     console.error('[salvarCurriculo] erro:', error)
     throw new Error('Falha ao salvar currículo.')
   }
+
   return data.id
 }
 
 export async function atualizarTextoCurriculo(
   id: string,
   textoExtraido: string,
-  dadosEstruturados: DadosCurriculo
+  dadosEstruturados: DadosCurriculo,
 ): Promise<void> {
   const { error } = await supabaseAdmin
     .from('curriculos')
@@ -52,14 +53,19 @@ export async function atualizarTextoCurriculo(
 export async function buscarCurriculo(usuarioId: string): Promise<CurriculoCompleto | null> {
   const { data, error } = await supabaseAdmin
     .from('curriculos')
-    .select('id, usuario_id, nome_arquivo, chave_r2, tamanho_bytes, carregado_em, processado_em, texto_extraido, dados_estruturados')
+    .select(
+      'id, usuario_id, nome_arquivo, chave_r2, tamanho_bytes, carregado_em, processado_em, texto_extraido, dados_estruturados',
+    )
     .eq('usuario_id', usuarioId)
-    .single()
+    .maybeSingle()
 
   if (error) {
-    if (error.code === 'PGRST116') return null
     console.error('[buscarCurriculo] erro:', error)
     throw new Error('Falha ao buscar currículo.')
+  }
+
+  if (!data) {
+    return null
   }
 
   return {

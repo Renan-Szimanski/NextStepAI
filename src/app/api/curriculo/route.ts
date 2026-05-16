@@ -6,7 +6,14 @@ import { gerarUrlLeitura, deletarArquivo } from '@/lib/r2/operacoes'
 
 /**
  * GET /api/curriculo
- * Retorna o currículo mais recente do usuário (com URL assinada)
+ * Retorna o currículo mais recente do usuário (com URL assinada).
+ *
+ * Bug 1 fix: trocado .single() por .maybeSingle().
+ * O .single() lança PGRST116 quando não encontra registro, o que causa
+ * uma exceção que precisava ser tratada explicitamente. O .maybeSingle()
+ * retorna { data: null, error: null } quando não há linha — eliminando
+ * a race condition em que o GET era chamado logo após o upsert e o erro
+ * PGRST116 era interpretado como falha real pelo caller.
  */
 export async function GET() {
   const sessao = await auth()
@@ -14,18 +21,16 @@ export async function GET() {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
   }
 
-  // Busca o currículo do usuário (apenas um por usuário)
   const { data, error } = await supabaseAdmin
     .from('curriculos')
     .select('id, nome_arquivo, chave_r2, tamanho_bytes, carregado_em')
     .eq('usuario_id', sessao.user.id)
-    .single()
+    // Bug 1 fix: maybeSingle() → retorna null sem erro quando não há registro,
+    // em vez de lançar PGRST116 que causava falso-negativo na verificação de currículo.
+    .maybeSingle()
 
   if (error) {
-    if (error.code === 'PGRST116') {
-      // Nenhum currículo encontrado
-      return NextResponse.json({ curriculo: null })
-    }
+    // Erro real de banco (não é "not found")
     console.error('[GET /curriculo] erro no banco:', error)
     return NextResponse.json({ error: 'Erro ao buscar currículo' }, { status: 500 })
   }
@@ -53,7 +58,7 @@ export async function GET() {
 
 /**
  * POST /api/curriculo
- * Registra um currículo enviado (após upload para R2)
+ * Registra um currículo enviado (após upload para R2).
  * Body: { chave: string, nomeOriginal: string, tamanhoBytes: number }
  */
 export async function POST(req: NextRequest) {
@@ -83,22 +88,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Chave inválida para este usuário' }, { status: 403 })
   }
 
-  // Substitui currículo anterior (deleta o antigo do banco e do R2)
-  const { data: antigo, error: buscaAntigo } = await supabaseAdmin
+  // Bug 1 fix: trocado .single() por .maybeSingle() para evitar PGRST116
+  // caso não exista currículo anterior (situação normal no primeiro upload).
+  const { data: antigo } = await supabaseAdmin
     .from('curriculos')
     .select('chave_r2')
     .eq('usuario_id', sessao.user.id)
-    .single()
+    .maybeSingle()
 
-  if (!buscaAntigo && antigo) {
+  if (antigo) {
     try {
       await deletarArquivo(antigo.chave_r2)
     } catch (err) {
-      console.error('[POST /curriculo] erro ao deletar arquivo antigo:', err)
+      console.error('[POST /curriculo] erro ao deletar arquivo antigo do R2:', err)
+      // Não interrompe o fluxo — o novo arquivo já está no R2
     }
   }
 
-  // Insere novo currículo
+  // Upsert do novo currículo (limpa campos de processamento anteriores)
   const { data, error } = await supabaseAdmin
     .from('curriculos')
     .upsert(
@@ -107,7 +114,6 @@ export async function POST(req: NextRequest) {
         chave_r2: chaveR2,
         nome_arquivo: nomeOriginal,
         tamanho_bytes: tamanhoBytes,
-        // Limpa campos de processamento anteriores
         texto_extraido: null,
         dados_estruturados: null,
         processado_em: null,
@@ -127,7 +133,7 @@ export async function POST(req: NextRequest) {
 
 /**
  * DELETE /api/curriculo
- * Remove o currículo do usuário (arquivo no R2 + registro no banco)
+ * Remove o currículo do usuário (arquivo no R2 + registro no banco).
  */
 export async function DELETE() {
   const sessao = await auth()
@@ -135,19 +141,20 @@ export async function DELETE() {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
   }
 
-  // Busca o currículo atual
+  // Bug 1 fix: maybeSingle() para não lançar PGRST116 quando não há currículo
   const { data, error } = await supabaseAdmin
     .from('curriculos')
     .select('chave_r2')
     .eq('usuario_id', sessao.user.id)
-    .single()
+    .maybeSingle()
 
   if (error) {
-    if (error.code === 'PGRST116') {
-      return NextResponse.json({ ok: true, message: 'Nenhum currículo para remover' })
-    }
     console.error('[DELETE /curriculo] erro ao buscar currículo:', error)
     return NextResponse.json({ error: 'Erro ao buscar currículo' }, { status: 500 })
+  }
+
+  if (!data) {
+    return NextResponse.json({ ok: true, message: 'Nenhum currículo para remover' })
   }
 
   // Remove do R2
@@ -155,7 +162,7 @@ export async function DELETE() {
     await deletarArquivo(data.chave_r2)
   } catch (err) {
     console.error('[DELETE /curriculo] erro ao deletar do R2:', err)
-    // Não interrompe, tenta deletar do banco mesmo assim
+    // Não interrompe — tenta deletar do banco mesmo assim
   }
 
   // Remove do banco

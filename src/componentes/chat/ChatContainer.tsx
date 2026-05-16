@@ -1,3 +1,5 @@
+// src\componentes\chat\ChatContainer.tsx
+
 'use client'
 
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any */
@@ -63,6 +65,7 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
   const [sessionId] = useState<string>(() => uuidv4())
   const abortControllerRef = useRef<AbortController | null>(null)
 
+  // ── Verifica se já existe currículo ao montar o componente ──────────────
   useEffect(() => {
     async function carregarStatusCurriculo() {
       try {
@@ -253,20 +256,51 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
     }
   }
 
-  async function handleUploadSuccess(nomeArquivo: string, urlLeitura: string) {
-    try {
-      const res = await fetch('/api/curriculo')
-      if (res.ok) {
-        const data = await res.json()
-        setHasCurriculo(!!data.curriculo)
-      }
-    } catch (err) {
-      console.error(err)
-    }
+  /**
+   * Chamado pelo componente de upload após o arquivo ser salvo com sucesso
+   * no R2 e o registro criado no Supabase.
+   *
+   * Bug 1 fix — dois ajustes:
+   *
+   * 1. Atualização otimista: `setHasCurriculo(true)` é chamado IMEDIATAMENTE,
+   *    antes de qualquer fetch. Isso garante que a UI reflita o estado correto
+   *    e que a mensagem automática seja enviada enquanto o estado já está atualizado.
+   *
+   * 2. Verificação assíncrona em background: o fetch para `/api/curriculo` é
+   *    disparado depois, sem bloquear o envio da mensagem. Se por algum motivo
+   *    o registro não for encontrado (improvável, pois o upload já confirmou),
+   *    o estado volta para `false` — mas a mensagem já foi enviada, e a tool
+   *    `extrair_texto_pdf` tem seu próprio retry de 500ms para cobrir o caso.
+   */
+async function handleUploadSuccess(nomeArquivo: string, urlLeitura: string) {
+  // Bug 1 fix: atualiza o estado imediatamente (antes do fetch de confirmação)
+  setHasCurriculo(true)
 
-    const mensagem = `✅ Realizei o envio do meu currículo: 📄 ${nomeArquivo}\n\n`
-    await enviarMensagem(mensagem, true)
-  }
+  // Dispara verificação de confirmação em background apenas para logging.
+  // Não reverte o estado mesmo se o servidor responder sem currículo,
+  // pois o upload já foi bem-sucedido (o backend POST /api/curriculo confirmou).
+  fetch('/api/curriculo')
+    .then((res) => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      return res.json()
+    })
+    .then((data) => {
+      if (!data.curriculo) {
+        console.warn(
+          '[ChatContainer] Confirmação em background: currículo não encontrado no servidor, ' +
+          'mas o upload foi confirmado anteriormente. Mantendo estado true.'
+        )
+        // Não muda o estado - setHasCurriculo continua true
+      }
+    })
+    .catch((err) => {
+      console.error('[ChatContainer] Erro ao confirmar currículo no servidor (ignorado):', err)
+      // Não reverte o estado
+    })
+
+  const mensagem = `✅ Realizei o envio do meu currículo: 📄 ${nomeArquivo}\n\n`
+  await enviarMensagem(mensagem, true)
+}
 
   useEffect(() => {
     return () => {

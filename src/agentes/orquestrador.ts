@@ -13,6 +13,11 @@ const PREFIXO = '[Orquestrador]';
  * Orquestrador responsável por processar a mensagem do usuário,
  * gerenciar o stream de eventos do agente e aplicar lógica de fallback.
  *
+ * Bug 1 fix: recebe `usuarioId` como parâmetro explícito e o propaga
+ * até `executarAgente`, que o injeta no input do agente LangGraph.
+ * Isso elimina a dependência de `auth()` dentro das tools, que falhava
+ * silenciosamente no contexto assíncrono de streaming.
+ *
  * Fluxo:
  * 1. Tenta o agente principal com streaming direto (sem buffer).
  * 2. Em caso de sucesso: tokens chegam ao cliente em tempo real.
@@ -23,6 +28,7 @@ const PREFIXO = '[Orquestrador]';
  */
 export async function* processarMensagem(
   messages: Mensagem[],
+  usuarioId: string,
 ): AsyncGenerator<EventoStreamSSE> {
   if (messages.length === 0) {
     console.warn(`${PREFIXO} Nenhuma mensagem recebida.`);
@@ -31,21 +37,15 @@ export async function* processarMensagem(
   }
 
   console.log(
-    `${PREFIXO} Iniciando processamento com ${messages.length} mensagens.`,
+    `${PREFIXO} Iniciando processamento com ${messages.length} mensagens (usuário: ${usuarioId}).`,
   );
 
-  // -----------------------------------------------------------------------
-  // Tentativa 1: agente principal com streaming direto.
-  // Tokens são emitidos imediatamente ao cliente (sem buffer intermediário).
-  // O fallback só é acionado se o erro ocorrer ANTES do primeiro token,
-  // pois após emitir tokens não há como fazer rollback no frontend.
-  // -----------------------------------------------------------------------
   let primeiroTokenEmitido = false;
 
   try {
-    for await (const evento of executarAgente(false, messages)) {
+    for await (const evento of executarAgente(false, messages, usuarioId)) {
       if (evento.type === 'token') primeiroTokenEmitido = true;
-      yield evento; // ← emissão imediata (streaming real)
+      yield evento;
     }
 
     yield { type: 'done' };
@@ -55,7 +55,6 @@ export async function* processarMensagem(
   } catch (error: unknown) {
     console.error(`${PREFIXO} Erro no agente principal:`, error);
 
-    // Se já emitimos tokens, não podemos fazer fallback sem duplicar conteúdo.
     if (primeiroTokenEmitido) {
       yield {
         type: 'error',
@@ -64,7 +63,6 @@ export async function* processarMensagem(
       return;
     }
 
-    // Sem tokens emitidos: podemos tentar o fallback com segurança.
     if (ehTimeout(error)) {
       yield {
         type: 'error',
@@ -80,11 +78,9 @@ export async function* processarMensagem(
     }
   }
 
-  // -----------------------------------------------------------------------
-  // Tentativa 2: fallback (só chega aqui se o principal falhou SEM emitir tokens)
-  // -----------------------------------------------------------------------
+  // Fallback (só chega aqui se o principal falhou SEM emitir tokens)
   try {
-    yield* executarAgente(true, messages); // ← streaming direto também no fallback
+    yield* executarAgente(true, messages, usuarioId);
     yield { type: 'done' };
     console.log(`${PREFIXO} Concluído com sucesso (fallback).`);
   } catch (fallbackError: unknown) {
@@ -100,27 +96,34 @@ export async function* processarMensagem(
 /**
  * Encapsula a execução do agente e o consumo do stream de eventos.
  *
- * Filtra tokens "internos" do raciocínio (chunks que não são da resposta final),
- * emitindo apenas o que o usuário deve ver na UI.
+ * Bug 1 fix: o `usuarioId` é injetado no campo `configurable` do input
+ * do LangGraph. A tool `extrair_texto_pdf` lê esse valor diretamente,
+ * sem precisar chamar `auth()` — que não funciona fora do contexto HTTP.
  */
 async function* executarAgente(
   usarFallback: boolean,
   messages: Mensagem[],
+  usuarioId: string,
 ): AsyncGenerator<EventoStreamSSE> {
   const agente = criarAgentePathfinder(usarFallback);
   const langChainMessages = await converterMensagensParaLangChain(messages);
+
+  // Bug 1 fix: usuarioId injetado em configurable para ser acessível
+  // pelas tools via RunnableConfig, sem depender de auth() no contexto da tool.
   const input = { messages: langChainMessages };
+  const config = {
+    configurable: {
+      usuarioId,
+    },
+  };
 
-  console.log(`${PREFIXO} Executando agente (fallback=${usarFallback})`);
+  console.log(`${PREFIXO} Executando agente (fallback=${usarFallback}, usuário=${usuarioId})`);
 
-  const stream = agente.streamEvents(input, { version: 'v2' });
+  const stream = agente.streamEvents(input, { version: 'v2', ...config });
 
   for await (const event of stream) {
     switch (event.event) {
       case 'on_chat_model_stream': {
-        // Filtra tokens que vêm de nós que não são a resposta final.
-        // No LangGraph ReAct, queremos só o nó 'agent' (geração final),
-        // não 'tools' (parsing) nem chunks intermediários sem texto útil.
         if (!ehTokenDeRespostaFinal(event)) break;
 
         const texto = extrairTexto(event.data?.chunk?.content);
@@ -162,14 +165,6 @@ async function* executarAgente(
   }
 }
 
-/**
- * Decide se um evento `on_chat_model_stream` representa um token da resposta
- * final ao usuário (em vez de raciocínio interno do agente).
- *
- * Heurística: aceita tokens com content em formato de texto. Tool calls
- * geralmente vêm como tool_call_chunks no chunk.additional_kwargs, sem
- * conteúdo textual visível.
- */
 function ehTokenDeRespostaFinal(event: {
   metadata?: Record<string, unknown>;
   data?: { chunk?: { content?: unknown; additional_kwargs?: unknown } };
@@ -177,7 +172,6 @@ function ehTokenDeRespostaFinal(event: {
   const chunk = event.data?.chunk;
   if (!chunk) return false;
 
-  // Se o chunk tem tool_calls em andamento, é raciocínio (não resposta final).
   const additional = chunk.additional_kwargs as
     | { tool_calls?: unknown[]; tool_call_chunks?: unknown[] }
     | undefined;
@@ -188,14 +182,12 @@ function ehTokenDeRespostaFinal(event: {
     return false;
   }
 
-  // Se metadata indica que estamos no nó 'tools', filtra (não é resposta).
   const node = event.metadata?.langgraph_node;
   if (node === 'tools') return false;
 
   return true;
 }
 
-/** Normaliza o `content` de um chunk para string. */
 function extrairTexto(content: unknown): string {
   if (typeof content === 'string') return content;
   if (Array.isArray(content)) {
@@ -213,7 +205,6 @@ function extrairTexto(content: unknown): string {
   return '';
 }
 
-/** Detecta erro de timeout. */
 function ehTimeout(erro: unknown): boolean {
   if (typeof erro === 'object' && erro !== null && 'message' in erro) {
     const msg = String((erro as { message: unknown }).message).toLowerCase();
@@ -226,7 +217,6 @@ function ehTimeout(erro: unknown): boolean {
   return false;
 }
 
-/** Detecta erro de rate limit (HTTP 429 ou mensagem indicativa). */
 function ehRateLimit(erro: unknown): boolean {
   if (typeof erro !== 'object' || erro === null) return false;
 

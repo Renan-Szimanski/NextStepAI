@@ -1,3 +1,4 @@
+// src/componentes/chat/UploadPopover.tsx
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
@@ -62,6 +63,7 @@ export function UploadPopover({ onUploadSuccess, onClose }: UploadPopoverProps) 
     setUploadProgress(0)
 
     try {
+      // Etapa 1: obter URL pre-assinada para upload no R2
       const presignRes = await fetch('/api/curriculo/presign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -76,7 +78,8 @@ export function UploadPopover({ onUploadSuccess, onClose }: UploadPopoverProps) 
       }
       const { urlUpload, chave } = await presignRes.json()
 
-      await new Promise((resolve, reject) => {
+      // Etapa 2: upload direto para o R2 via XHR (para acompanhar progresso)
+      await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest()
         xhr.open('PUT', urlUpload)
         xhr.setRequestHeader('Content-Type', 'application/pdf')
@@ -87,13 +90,14 @@ export function UploadPopover({ onUploadSuccess, onClose }: UploadPopoverProps) 
           }
         }
         xhr.onload = () => {
-          if (xhr.status === 200) resolve(null)
+          if (xhr.status === 200) resolve()
           else reject(new Error(`Upload falhou: ${xhr.status}`))
         }
         xhr.onerror = () => reject(new Error('Erro de conexão'))
         xhr.send(file)
       })
 
+      // Etapa 3: registrar currículo no banco via POST /api/curriculo
       const registerRes = await fetch('/api/curriculo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -108,19 +112,33 @@ export function UploadPopover({ onUploadSuccess, onClose }: UploadPopoverProps) 
         throw new Error(error.error || 'Falha ao registrar currículo')
       }
 
+      // POST confirmou com 200 — o currículo está salvo no banco.
+      // Bug 1 fix: NÃO esperamos o GET de confirmação para chamar onUploadSuccess.
+      // O GET adicional é apenas para popular o estado visual do popover (URL
+      // assinada para visualizar o PDF), mas não deve bloquear o callback para
+      // o ChatContainer — que já tem os dados necessários (nome do arquivo).
       setUploadStatus('success')
       toast.success('Currículo enviado com sucesso!')
 
-      // Recarregar currículo atual
-      const res = await fetch('/api/curriculo')
-      const data = await res.json()
-      if (data.curriculo) {
-        setCurriculoAtual(data.curriculo)
-        onUploadSuccess(data.curriculo.nomeOriginal, data.curriculo.urlLeitura)
-      }
-      setTimeout(() => {
-        onClose()
-      }, 1500)
+      // Notifica o ChatContainer IMEDIATAMENTE com o nome do arquivo.
+      // A urlLeitura é deixada vazia pois o ChatContainer não a utiliza —
+      // ela é usada apenas pelo popover para abrir o PDF, e buscamos abaixo.
+      onUploadSuccess(file.name, '')
+
+      // Em background: busca URL assinada para exibição no popover e fecha.
+      // Se falhar, não impacta o fluxo do agente (que já foi notificado acima).
+      fetch('/api/curriculo')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.curriculo) {
+            setCurriculoAtual(data.curriculo)
+          }
+        })
+        .catch((err) => console.error('[UploadPopover] erro ao recarregar currículo:', err))
+        .finally(() => {
+          setTimeout(() => onClose(), 1500)
+        })
+
     } catch (err) {
       console.error(err)
       toast.error(err instanceof Error ? err.message : 'Erro ao enviar currículo')
@@ -140,18 +158,10 @@ export function UploadPopover({ onUploadSuccess, onClose }: UploadPopoverProps) 
       if (!res.ok) throw new Error('Falha ao remover')
       setCurriculoAtual(null)
       toast.success('Currículo removido')
-      // Recarregar para atualizar estado no chat
-      window.location.reload() // ou usar callback
     } catch {
       toast.error('Erro ao remover currículo')
     }
   }
-
-  // useEffect(() => {
-  //   if (uploadStatus === 'idle' && !carregando && !curriculoAtual) {
-  //     fileInputRef.current?.click()
-  //   }
-  // }, [uploadStatus, carregando, curriculoAtual])
 
   return (
     <div className="absolute bottom-full right-0 mb-2 w-80 rounded-lg border bg-background shadow-lg z-50 p-4 animate-in slide-in-from-bottom-2 fade-in duration-200">
