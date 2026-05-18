@@ -1,5 +1,3 @@
-// src/componentes/chat/ModalRoadmap.tsx
-
 'use client';
 
 import { useState, useCallback } from 'react';
@@ -77,10 +75,10 @@ export function ModalRoadmap({ textoRoadmap }: ModalRoadmapProps) {
       <Dialog open={aberto} onOpenChange={setAberto}>
         <DialogContent className="flex flex-col gap-0 p-0 overflow-hidden bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800"
           style={{
-            width: '95vw',
-            maxWidth: '1200px',
-            height: '90vh',
-            maxHeight: '90vh',
+            width: '98vw',
+            maxWidth: '1400px',
+            height: '92vh',
+            maxHeight: '92vh',
           }}
         >
           <DialogHeader className="shrink-0 px-5 pt-5 pb-3 border-b border-gray-200 dark:border-gray-800">
@@ -126,7 +124,7 @@ export function ModalRoadmap({ textoRoadmap }: ModalRoadmapProps) {
             </div>
           </DialogHeader>
 
-          <div className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900 p-4">
+          <div className="flex-1 overflow-hidden bg-gray-50 dark:bg-gray-900">
             <DiagramaRoadmapReactFlow 
               textoRoadmap={textoRoadmap} 
               onSkillToggle={(skill, concluido) => {

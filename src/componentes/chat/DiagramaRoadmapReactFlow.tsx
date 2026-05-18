@@ -1,5 +1,3 @@
-// src/componentes/chat/DiagramaRoadmapReactFlow.tsx
-
 'use client';
 
 import { useCallback, useMemo, useState } from 'react';
@@ -84,7 +82,8 @@ function calcularLayout(grafo: GrafoRoadmap): {
   };
 
   const skillsPorFase = colunas.map((c) => c.filter((n) => n.tipo === 'skill').length);
-  const maxSkills = Math.min(Math.max(...skillsPorFase, 3), 8);
+  // 🔧 CORREÇÃO: remove limite arbitrário de 8 skills; usa o máximo real entre as fases
+  const maxSkills = Math.max(...skillsPorFase, 3);  // garante pelo menos 3 para alinhamento visual
 
   const alturaUtil =
     CONFIG.PADDING_V +
@@ -248,12 +247,22 @@ export function DiagramaRoadmapReactFlow({
     setSelectedSkill(nodo);
     setCarregandoResumo(true);
     setResumoSkill('');
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 400));
-      const resumo = gerarResumoSimulado(nodo.label);
-      setResumoSkill(resumo);
-    } catch {
-      setResumoSkill('Não foi possível carregar o resumo. Tente novamente.');
+      const response = await fetch('/api/gerar-resumo-skill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skill: nodo.label }),
+      });
+
+      if (!response.ok) throw new Error('Falha na API');
+      const data = await response.json();
+      setResumoSkill(data.resumo);
+    } catch (error) {
+      console.error(error);
+      setResumoSkill(
+        `**${nodo.label}** – Não foi possível carregar o resumo no momento. Tente novamente mais tarde.`
+      );
     } finally {
       setCarregandoResumo(false);
     }
