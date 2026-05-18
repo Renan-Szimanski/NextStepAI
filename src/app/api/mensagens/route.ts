@@ -116,6 +116,24 @@ export async function POST(req: Request): Promise<Response> {
     sessionId,
   });
 
+// -------------------------------------------------------------------------
+  // TRATAMENTO PARA O MODELO DE RACIOCÍNIO (DeepSeek/Thinking)
+  // Remove as tags <think> do histórico para evitar o erro 400 da API
+  // -------------------------------------------------------------------------
+  const mensagensTratadas = messages.map((msg) => {
+    if (msg.papel === 'assistant') {
+      // Usa regex para remover a tag <think> e tudo que estiver dentro dela
+      const conteudoLimpo = msg.conteudo.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+      
+      return {
+        ...msg,
+        // Evita mandar uma string vazia caso a IA só tenha "pensado" na mensagem anterior
+        conteudo: conteudoLimpo !== '' ? conteudoLimpo : '...', 
+      };
+    }
+    return msg;
+  });
+
   // -------------------------------------------------------------------------
   // 3. Construção do ReadableStream SSE
   // -------------------------------------------------------------------------
@@ -153,7 +171,7 @@ export async function POST(req: Request): Promise<Response> {
         // Bug 1 fix: passa usuarioId explicitamente para o orquestrador,
         // que o repassa para as tools via argumento — sem depender de auth()
         // dentro do contexto assíncrono do LangGraph.
-        for await (const evento of processarMensagem(messages as Mensagem[], usuarioId)) {
+        for await (const evento of processarMensagem(mensagensTratadas as Mensagem[], usuarioId)) {
           if (fechado || req.signal.aborted) break;
           controller.enqueue(formatarEventoSSE(evento, encoder));
         }
