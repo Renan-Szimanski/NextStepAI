@@ -13,6 +13,7 @@ export interface Mensagem {
   timestamp: number;
   toolName?: string;
   criadoEm: Date;
+  reasoningContent?: string; // ← ADICIONADO: para suporte ao modo thinking do DeepSeek
 }
 
 /**

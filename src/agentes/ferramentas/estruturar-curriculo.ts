@@ -1,9 +1,13 @@
+// src\agentes\ferramentas\estruturar-curriculo.ts
+
 import { tool } from '@langchain/core/tools'
 import { z } from 'zod'
 import { RunnableConfig } from '@langchain/core/runnables'
 import { criarLLM } from '@/lib/langchain/llm'
 import { atualizarTextoCurriculo, buscarCurriculo } from '@/lib/supabase/curriculo'
 import type { DadosCurriculo, ExperienciaProfissional } from '@/tipos/curriculo'
+
+const LLM_TIMEOUT_MS = 4000   // 4 segundos para chamada ao LLM
 
 function truncarTexto(texto: string, limite: number = 8000): string {
   if (texto.length <= limite) return texto
@@ -21,10 +25,6 @@ function nullToUndefined<T>(value: T | null): T | undefined {
   return value === null ? undefined : value
 }
 
-/**
- * Gera um resumo legível dos dados estruturados para o LLM utilizar
- * como fonte de verdade ao montar a Gap Analysis.
- */
 function gerarResumoParaLLM(dados: DadosCurriculo): string {
   const habilidadesTecnicas = dados.habilidades?.filter(h => 
     !['comunicação', 'trabalho em equipe', 'liderança', 'proatividade', 'organização', 'gestão', 'planejamento', 'inglês', 'espanhol', 'francês'].includes(h.toLowerCase())
@@ -72,14 +72,24 @@ export const estruturarDadosCurriculo = tool(
     const usuarioId = configurable?.usuarioId as string | undefined
 
     if (!usuarioId) {
-      console.error('[estruturarDadosCurriculo] usuarioId não encontrado no config.')
-      return 'Não foi possível identificar o usuário. Por favor, faça login novamente.'
+      return 'Não foi possível identificar o usuário.'
     }
 
     if (!textoCurriculo || textoCurriculo.trim().length === 0) {
-      return 'Erro: texto do currículo vazio. Execute extrair_texto_pdf primeiro.'
+      return 'Erro: texto do currículo vazio.'
     }
 
+    // ----- CACHE: se já temos dados estruturados no banco, retorna resumo imediato -----
+    const curriculoExistente = await buscarCurriculo(usuarioId)
+    if (curriculoExistente?.dadosEstruturados && 
+        Object.keys(curriculoExistente.dadosEstruturados).length > 0 &&
+        curriculoExistente.dadosEstruturados.habilidades?.length) {
+      console.log('[estruturarDadosCurriculo] Usando dados estruturados em cache')
+      const resumoCache = gerarResumoParaLLM(curriculoExistente.dadosEstruturados)
+      return `✅ Currículo já estruturado anteriormente.\n\n${resumoCache}`
+    }
+
+    // ----- Processamento com timeout -----
     const textoLimitado = truncarTexto(textoCurriculo, 8000)
     const foiTruncado = textoLimitado.length < textoCurriculo.length
     const llm = criarLLM('principal')
@@ -107,74 +117,79 @@ Esquema esperado:
   "resumo": string | null
 }`
 
-    let tentativas = 0
-    let sucesso = false
     let dadosEstruturados: DadosCurriculo | null = null
-    let ultimoErro = ''
+    let sucesso = false
+    let erroMensagem = ''
 
-    while (tentativas < 2 && !sucesso) {
-      try {
-        const resposta = await llm.invoke([
-          { role: 'system', content: promptSistema },
-          { role: 'user', content: `Texto do currículo:\n${textoLimitado}` },
-        ])
-        const conteudo = typeof resposta.content === 'string' ? resposta.content : String(resposta.content)
-        const dados = extrairJsonDaResposta(conteudo)
+    try {
+      const llmPromise = llm.invoke([
+        { role: 'system', content: promptSistema },
+        { role: 'user', content: `Texto do currículo:\n${textoLimitado}` },
+      ])
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('LLM_TIMEOUT')), LLM_TIMEOUT_MS)
+      )
+      const resposta = await Promise.race([llmPromise, timeoutPromise])
+      const conteudo = typeof resposta.content === 'string' ? resposta.content : String(resposta.content)
+      const dados = extrairJsonDaResposta(conteudo)
 
-        if (!dados || typeof dados !== 'object') throw new Error('Resposta não é objeto JSON')
+      if (!dados || typeof dados !== 'object') throw new Error('Resposta não é objeto JSON')
 
-        dadosEstruturados = {
-          nome: nullToUndefined(dados.nome),
-          email: nullToUndefined(dados.email),
-          telefone: nullToUndefined(dados.telefone),
-          formacao: Array.isArray(dados.formacao) ? dados.formacao : [],
-          experiencias: Array.isArray(dados.experiencias) ? dados.experiencias.map((exp: Partial<ExperienciaProfissional>) => ({
-            cargo: exp.cargo ?? '',
-            empresa: exp.empresa ?? '',
-            periodo: nullToUndefined(exp.periodo),
-            descricao: nullToUndefined(exp.descricao),
-          })) : [],
-          habilidades: Array.isArray(dados.habilidades) ? dados.habilidades : [],
-          idiomas: Array.isArray(dados.idiomas) ? dados.idiomas : [],
-          resumo: nullToUndefined(dados.resumo),
-        }
-        sucesso = true
-      } catch (err) {
-        ultimoErro = err instanceof Error ? err.message : String(err)
-        tentativas++
+      dadosEstruturados = {
+        nome: nullToUndefined(dados.nome),
+        email: nullToUndefined(dados.email),
+        telefone: nullToUndefined(dados.telefone),
+        formacao: Array.isArray(dados.formacao) ? dados.formacao : [],
+        experiencias: Array.isArray(dados.experiencias) ? dados.experiencias.map((exp: Partial<ExperienciaProfissional>) => ({
+          cargo: exp.cargo ?? '',
+          empresa: exp.empresa ?? '',
+          periodo: nullToUndefined(exp.periodo),
+          descricao: nullToUndefined(exp.descricao),
+        })) : [],
+        habilidades: Array.isArray(dados.habilidades) ? dados.habilidades : [],
+        idiomas: Array.isArray(dados.idiomas) ? dados.idiomas : [],
+        resumo: nullToUndefined(dados.resumo),
       }
+      sucesso = true
+    } catch (err) {
+      erroMensagem = err instanceof Error ? err.message : String(err)
+      console.warn('[estruturarDadosCurriculo] Falha na estruturação:', erroMensagem)
     }
 
     if (!sucesso || !dadosEstruturados) {
-      return `Falha ao estruturar o currículo: ${ultimoErro}. O texto extraído pode estar mal formatado.`
+      // Salva um placeholder para não reprocessar sempre
+      try {
+        if (curriculoExistente?.id) {
+          await atualizarTextoCurriculo(
+            curriculoExistente.id,
+            textoCurriculo,
+            { formacao: [], experiencias: [], habilidades: [], idiomas: [] }
+          )
+        }
+      } catch { /* ignora erro no placeholder */ }
+
+      return `⚠️ **Processamento em segundo plano**\n\nNão foi possível analisar seu currículo agora (tempo limite). Continue conversando normalmente – em alguns instantes os dados estarão disponíveis. Você pode pedir para “analisar meu currículo” novamente daqui a pouco.`
     }
 
+    // Salva os dados estruturados
     const curriculo = await buscarCurriculo(usuarioId)
     if (!curriculo) {
-      return 'Nenhum currículo encontrado para este usuário. Faça upload primeiro.'
+      return 'Nenhum currículo encontrado para este usuário.'
     }
 
     try {
       await atualizarTextoCurriculo(curriculo.id, curriculo.textoExtraido || '', dadosEstruturados)
     } catch (err) {
       console.error('[estruturarDadosCurriculo] erro ao salvar:', err)
-      return `Erro ao salvar dados estruturados no banco: ${err instanceof Error ? err.message : 'desconhecido'}`
     }
 
-    // Gera o resumo para o LLM usar na resposta
     const resumo = gerarResumoParaLLM(dadosEstruturados)
     const avisoTruncado = foiTruncado ? ' (o texto original foi truncado, algumas informações podem faltar)' : ''
-
-    // Retorna tanto uma mensagem de sucesso quanto o resumo estruturado
-    return `✅ Currículo estruturado com sucesso${avisoTruncado}.
-
-${resumo}
-
-Agora você pode usar as informações acima para gerar a Gap Analysis.`
+    return `✅ Currículo estruturado com sucesso${avisoTruncado}.\n\n${resumo}\n\nAgora você pode usar as informações acima para gerar a Gap Analysis.`
   },
   {
     name: 'estruturar_dados_curriculo',
-    description: `Analisa o texto bruto de um currículo e extrai informações estruturadas (experiências, habilidades, formação, idiomas). Use após extrair_texto_pdf, antes de gerar o gap analysis. Não é necessário fornecer argumentos – o ID do usuário é obtido automaticamente. Retorna os dados reais do currículo para você usar na análise.`,
+    description: `Extrai dados estruturados do currículo. Usa cache automático.`,
     schema: z.object({
       textoCurriculo: z.string().describe('Texto bruto extraído do PDF do currículo'),
     }),

@@ -1,7 +1,7 @@
 // src/agentes/pathfinder.ts
 import { createReactAgent } from '@langchain/langgraph/prebuilt';
-import { criarLLM } from '@/lib/langchain/llm';
-import { todasAsTools } from '@/agentes/ferramentas'; // ← importa todas as tools
+import { criarLLMParaAgente } from '@/lib/langchain/llm';
+import { todasAsTools } from '@/agentes/ferramentas';
 import { SYSTEM_PROMPT_PATHFINDER } from '@/agentes/prompts/pathfinder-system';
 import {
   HumanMessage,
@@ -13,92 +13,60 @@ import type { Mensagem } from '@/tipos';
 
 const PREFIXO_LOG = '[Pathfinder]';
 
-/**
- * Configuração da janela de histórico (Estratégia 2: trim por tokens).
- *
- * - `maxTokensHistorico`: orçamento de tokens reservado para mensagens passadas.
- *   Não inclui system prompt, schemas de tools nem a resposta gerada.
- *   Ajustar conforme a janela do modelo principal e o custo/latência tolerados.
- */
 const CONFIG_MEMORIA = {
   maxTokensHistorico: 18000,
 } as const;
 
-/**
- * Cria a instância do agente Pathfinder usando `createReactAgent` do LangGraph.
- *
- * @param usarFallback - Se true, utiliza o modelo menor (rate limit / custos).
- * @returns Instância compilada do agente ReAct.
- */
+type ComReasoning = { reasoning_content?: string };
+
 export function criarAgentePathfinder(usarFallback: boolean = false) {
-  const llm = criarLLM(usarFallback ? 'fallback' : 'principal');
-  const tools = todasAsTools; // ← agora inclui buscarVetor e extrairTextoPdf
+  const llm = criarLLMParaAgente(usarFallback ? 'fallback' : 'principal');
 
   return createReactAgent({
     llm,
-    tools,
+    tools: todasAsTools,
     stateModifier: SYSTEM_PROMPT_PATHFINDER,
   });
 }
 
-/**
- * Converte as mensagens da nossa interface (Frontend) para o formato do LangChain
- * e aplica janela deslizante por tokens (Estratégia 2).
- *
- * Mapeamento:
- * - 'user'      → HumanMessage
- * - 'assistant' → AIMessage
- * - 'tool'      → ignorada (LangGraph reconstrói o ciclo de tools internamente)
- * - 'system'    → ignorada (já fornecida via `stateModifier` do createReactAgent)
- *
- * Mensagens com conteúdo vazio também são ignoradas para não poluir o contexto.
- *
- * Após a conversão, `trimMessages` garante que o histórico não exceda
- * `CONFIG_MEMORIA.maxTokensHistorico`. A estratégia mantém as mensagens
- * mais recentes e força que a primeira mensagem preservada seja humana,
- * evitando começar o contexto com uma resposta solta do assistente.
- *
- * @param mensagens - Array de mensagens vindas do frontend/banco.
- * @returns Array formatado e aparado de mensagens para o LangChain.
- */
 export async function converterMensagensParaLangChain(
   mensagens: Mensagem[],
 ): Promise<BaseMessage[]> {
   const formatadas: BaseMessage[] = [];
 
   for (const msg of mensagens) {
-    if (!msg.conteudo || msg.conteudo.trim().length === 0) {
-      continue;
-    }
+    if (!msg.conteudo || msg.conteudo.trim().length === 0) continue;
 
     switch (msg.papel) {
       case 'user':
         formatadas.push(new HumanMessage(msg.conteudo));
         break;
 
-      case 'assistant':
-        formatadas.push(new AIMessage(msg.conteudo));
-        break;
-
-      case 'tool':
-        // LangGraph gerencia o ciclo de tools internamente; ignorar do histórico.
-        break;
-
-      case 'system':
-        // System prompt já é injetado via `stateModifier` do createReactAgent.
-        break;
-
-      default: {
-        const _exhaustiveCheck: never = msg.papel;
-        console.warn(
-          `${PREFIXO_LOG} Papel desconhecido ignorado: ${String(_exhaustiveCheck)}`,
-        );
+      case 'assistant': {
+        const aiMsg = new AIMessage({
+          content: msg.conteudo,
+          additional_kwargs: msg.reasoningContent
+            ? { reasoning_content: msg.reasoningContent }
+            : {},
+        });
+        if (msg.reasoningContent) {
+          (aiMsg as AIMessage & ComReasoning).reasoning_content = msg.reasoningContent;
+        }
+        formatadas.push(aiMsg);
         break;
       }
+
+      case 'tool':
+      case 'system':
+        break;
+
+      default:
+        console.warn(
+          `${PREFIXO_LOG} Papel desconhecido ignorado: ${String((msg as Mensagem & { papel: string }).papel)}`,
+        );
     }
   }
 
-  // Estratégia 2: janela deslizante por tokens.
   const aparadas = await trimMessages(formatadas, {
     maxTokens: CONFIG_MEMORIA.maxTokensHistorico,
     strategy: 'last',
@@ -109,17 +77,34 @@ export async function converterMensagensParaLangChain(
 
   if (aparadas.length < formatadas.length) {
     console.log(
-      `${PREFIXO_LOG} Histórico aparado: ${formatadas.length} → ${aparadas.length} mensagens ` +
-        `(limite: ${CONFIG_MEMORIA.maxTokensHistorico} tokens).`,
+      `${PREFIXO_LOG} Histórico aparado: ${formatadas.length} → ${aparadas.length} mensagens` +
+        ` (limite: ${CONFIG_MEMORIA.maxTokensHistorico} tokens).`,
     );
   }
 
-  return aparadas;
+  return aparadas.map((msg) => {
+    if (!(msg instanceof AIMessage)) return msg;
+
+    const typed = msg as AIMessage & ComReasoning;
+    if (typed.reasoning_content) return msg;
+
+    const original = formatadas.find(
+      (f): f is AIMessage => f instanceof AIMessage && f.content === msg.content,
+    );
+
+    const reasoning =
+      (original as (AIMessage & ComReasoning) | undefined)?.reasoning_content ??
+      (original?.additional_kwargs?.reasoning_content as string | undefined);
+
+    if (reasoning) {
+      typed.reasoning_content = reasoning;
+      msg.additional_kwargs = { ...msg.additional_kwargs, reasoning_content: reasoning };
+    }
+
+    return msg;
+  });
 }
 
-/**
- * Estimativa de tokens baseada na heurística de ~4 caracteres por token.
- */
 function estimarTokens(mensagens: BaseMessage[]): number {
   return mensagens.reduce((total, msg) => {
     const conteudo = typeof msg.content === 'string' ? msg.content : '';
