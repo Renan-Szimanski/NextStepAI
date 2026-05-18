@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/componentes/ui/button'
 import { Progress } from '@/componentes/ui/progress'
 import { toast } from 'sonner'
-import { Trash2, FileText, Loader2 } from 'lucide-react' // Remove 'Upload' não usado
+import { Trash2, FileText, Loader2 } from 'lucide-react'
 
 interface CurriculoAtual {
   id: string
@@ -101,6 +101,12 @@ export function UploadCurriculo() {
 
       setUploadStatus('success')
       toast.success('Currículo enviado com sucesso!')
+
+      // ✅ Dispara processamento em background (fire-and-forget)
+      fetch('/api/curriculo/processar', { method: 'POST' }).catch(err =>
+        console.warn('Background process trigger falhou:', err)
+      )
+
       const res = await fetch('/api/curriculo')
       const data = await res.json()
       if (data.curriculo) setCurriculoAtual(data.curriculo)
@@ -121,14 +127,11 @@ export function UploadCurriculo() {
     try {
       const res = await fetch('/api/curriculo', { method: 'DELETE' })
       if (!res.ok) throw new Error('Falha ao remover')
-      // src/componentes/curriculo/UploadCurriculo.tsx (Trecho corrigido)
-      // ...
-      setCurriculoAtual(null);
-      toast.success('Currículo removido');
-    } catch { // ✅ Removido o parâmetro err não utilizado
-      toast.error('Erro ao remover currículo');
+      setCurriculoAtual(null)
+      toast.success('Currículo removido')
+    } catch {
+      toast.error('Erro ao remover currículo')
     }
-// ...
   }
 
   if (carregando) {
