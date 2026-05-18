@@ -4,7 +4,6 @@ import { useCallback, useMemo, useState } from 'react';
 import { parsearRoadmap, GrafoRoadmap, NodoRoadmap } from '@/lib/parsear-roadmap';
 import { Button } from '@/componentes/ui/button';
 import { Checkbox } from '@/componentes/ui/checkbox';
-import { Badge } from '@/componentes/ui/badge';
 import { Check, ChevronRight, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { TooltipResumoSkill } from './TooltipResumoSkill';
 
@@ -14,50 +13,60 @@ interface DiagramaRoadmapReactFlowProps {
   onSkillToggle?: (skill: string, concluido: boolean) => void;
 }
 
-// Cores sólidas, sem transparência
-const ESTILOS_FASE: Record<number, {
-  bg: string;
-  border: string;
-  text: string;
-  edgeColor: string;
-  badge: string;
-}> = {
-  0: {
-    bg: 'bg-primary',
-    border: 'border-primary',
-    text: 'text-primary-foreground',
-    edgeColor: 'hsl(var(--primary))',
-    badge: 'bg-primary-foreground/20 text-primary-foreground',
-  },
-  1: {
-    bg: 'bg-amber-100 dark:bg-amber-800',
-    border: 'border-amber-500',
-    text: 'text-amber-900 dark:text-amber-50',
-    edgeColor: '#f59e0b',
-    badge: 'bg-amber-200 text-amber-900 dark:bg-amber-700 dark:text-amber-50',
-  },
-  2: {
-    bg: 'bg-emerald-100 dark:bg-emerald-800',
-    border: 'border-emerald-500',
-    text: 'text-emerald-900 dark:text-emerald-50',
-    edgeColor: '#10b981',
-    badge: 'bg-emerald-200 text-emerald-900 dark:bg-emerald-700 dark:text-emerald-50',
-  },
-  3: {
-    bg: 'bg-blue-100 dark:bg-blue-800',
-    border: 'border-blue-500',
-    text: 'text-blue-900 dark:text-blue-50',
-    edgeColor: '#3b82f6',
-    badge: 'bg-blue-200 text-blue-900 dark:bg-blue-700 dark:text-blue-50',
-  },
-};
-
 interface Posicao {
   x: number;
   y: number;
   largura: number;
   altura: number;
 }
+
+// Paleta refinada – mais contraste no escuro e bordas suaves
+const ESTILOS_FASE_MINIMALISTA: Record<number, {
+  light: string;
+  dark: string;
+  textoLight: string;
+  textoDark: string;
+  linha: string;
+  bordaLight: string;
+  bordaDark: string;
+}> = {
+  1: {
+    light: 'bg-blue-50/80 border-blue-200/80',
+    dark: 'dark:bg-blue-950/40 dark:border-blue-700/60',
+    textoLight: 'text-blue-900',
+    textoDark: 'dark:text-blue-100',
+    linha: 'text-blue-300 dark:text-blue-700',
+    bordaLight: 'border-blue-300/50',
+    bordaDark: 'dark:border-blue-600/40',
+  },
+  2: {
+    light: 'bg-emerald-50/80 border-emerald-200/80',
+    dark: 'dark:bg-emerald-950/40 dark:border-emerald-700/60',
+    textoLight: 'text-emerald-900',
+    textoDark: 'dark:text-emerald-100',
+    linha: 'text-emerald-300 dark:text-emerald-700',
+    bordaLight: 'border-emerald-300/50',
+    bordaDark: 'dark:border-emerald-600/40',
+  },
+  3: {
+    light: 'bg-violet-50/80 border-violet-200/80',
+    dark: 'dark:bg-violet-950/40 dark:border-violet-700/60',
+    textoLight: 'text-violet-900',
+    textoDark: 'dark:text-violet-100',
+    linha: 'text-violet-300 dark:text-violet-700',
+    bordaLight: 'border-violet-300/50',
+    bordaDark: 'dark:border-violet-600/40',
+  },
+  0: {
+    light: 'bg-zinc-50 border-zinc-200',
+    dark: 'dark:bg-zinc-800/60 dark:border-zinc-700',
+    textoLight: 'text-zinc-800',
+    textoDark: 'dark:text-zinc-200',
+    linha: 'text-zinc-300 dark:text-zinc-700',
+    bordaLight: 'border-zinc-300',
+    bordaDark: 'dark:border-zinc-600',
+  },
+};
 
 function calcularLayout(grafo: GrafoRoadmap): {
   posicoes: Map<string, Posicao>;
@@ -70,41 +79,39 @@ function calcularLayout(grafo: GrafoRoadmap): {
   for (const nodo of grafo.nodos) colunas[nodo.fase].push(nodo);
 
   const CONFIG = {
-    LARGURA_RAIZ: 300,
-    ALTURA_RAIZ: 100,
-    LARGURA_FASE: 280,
-    ALTURA_FASE: 60,
-    LARGURA_SKILL: 280,
-    ALTURA_SKILL: 56,
-    GAP_H: 100,
-    GAP_V: 16,
-    PADDING_V: 80,
+    LARGURA_RAIZ: 280,
+    ALTURA_RAIZ: 80,
+    LARGURA_FASE: 320,
+    ALTURA_FASE: 48,          // um pouco mais alto para acomodar borda
+    LARGURA_SKILL: 320,
+    ALTURA_SKILL: 64,
+    GAP_H: 120,
+    GAP_V: 20,
+    PADDING_V: 120,
   };
 
   const skillsPorFase = colunas.map((c) => c.filter((n) => n.tipo === 'skill').length);
-  // 🔧 CORREÇÃO: remove limite arbitrário de 8 skills; usa o máximo real entre as fases
-  const maxSkills = Math.max(...skillsPorFase, 3);  // garante pelo menos 3 para alinhamento visual
+  const maxSkills = Math.max(...skillsPorFase, 3);
 
   const alturaUtil =
     CONFIG.PADDING_V +
     CONFIG.ALTURA_FASE +
-    30 +
+    40 +
     maxSkills * (CONFIG.ALTURA_SKILL + CONFIG.GAP_V) +
     CONFIG.PADDING_V;
 
   const larguraTotal =
-    60 +
+    80 +
     CONFIG.LARGURA_RAIZ +
     CONFIG.GAP_H +
     3 * CONFIG.LARGURA_FASE +
     2 * CONFIG.GAP_H +
-    60;
+    80;
 
   const alturaTotal = Math.max(alturaUtil, CONFIG.ALTURA_RAIZ + 2 * CONFIG.PADDING_V);
   const centroY = alturaTotal / 2;
-  const offsetX = 60;
+  const offsetX = 80;
 
-  // Raiz
   for (const nodo of colunas[0]) {
     posicoes.set(nodo.id, {
       x: offsetX,
@@ -114,7 +121,6 @@ function calcularLayout(grafo: GrafoRoadmap): {
     });
   }
 
-  // Fases 1-3
   for (let col = 1; col <= 3; col++) {
     const nodosCol = colunas[col];
     if (!nodosCol.length) continue;
@@ -123,7 +129,7 @@ function calcularLayout(grafo: GrafoRoadmap): {
     const xCol = offsetX + CONFIG.LARGURA_RAIZ + CONFIG.GAP_H + (col - 1) * (CONFIG.LARGURA_FASE + CONFIG.GAP_H);
 
     const alturaSkills = skills.length * CONFIG.ALTURA_SKILL + Math.max(0, skills.length - 1) * CONFIG.GAP_V;
-    const blocoTotal = CONFIG.ALTURA_FASE + 30 + alturaSkills;
+    const blocoTotal = CONFIG.ALTURA_FASE + 40 + alturaSkills;
     const yFase = centroY - blocoTotal / 2;
 
     posicoes.set(fase.id, {
@@ -133,7 +139,7 @@ function calcularLayout(grafo: GrafoRoadmap): {
       altura: CONFIG.ALTURA_FASE,
     });
 
-    let yAtual = yFase + CONFIG.ALTURA_FASE + 30;
+    let yAtual = yFase + CONFIG.ALTURA_FASE + 40;
     for (const skill of skills) {
       posicoes.set(skill.id, {
         x: xCol,
@@ -178,29 +184,20 @@ export function DiagramaRoadmapReactFlow({
   const zoomScales = { sm: 0.6, md: 0.85, lg: 1.1 };
   const zoomAtual = zoomScales[zoomLevel];
 
-  const handleZoomIn = useCallback(() => {
-    setZoomLevel(prev => prev === 'lg' ? 'lg' : prev === 'md' ? 'lg' : 'md');
-  }, []);
-
-  const handleZoomOut = useCallback(() => {
-    setZoomLevel(prev => prev === 'sm' ? 'sm' : prev === 'md' ? 'sm' : 'md');
-  }, []);
-
-  const handleZoomReset = useCallback(() => {
-    setZoomLevel('md');
-    setPan({ x: 0, y: 0 });
-  }, []);
+  const handleZoomIn = useCallback(() => setZoomLevel(prev => prev === 'lg' ? 'lg' : prev === 'md' ? 'lg' : 'md'), []);
+  const handleZoomOut = useCallback(() => setZoomLevel(prev => prev === 'sm' ? 'sm' : prev === 'md' ? 'sm' : 'md'), []);
+  const handleZoomReset = useCallback(() => { setZoomLevel('md'); setPan({ x: 0, y: 0 }); }, []);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if ((e.target as Element).closest('button, input, a')) return;
+    if ((e.target as Element).closest('button, input, a, foreignObject > div')) return;
     setIsDragging(true);
     setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
   }, [pan]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!isDragging) return;
-    const limiteX = larguraTotal * 0.3;
-    const limiteY = alturaTotal * 0.3;
+    const limiteX = larguraTotal * 0.4;
+    const limiteY = alturaTotal * 0.4;
     const novoX = Math.max(-limiteX, Math.min(limiteX, e.clientX - dragStart.x));
     const novoY = Math.max(-limiteY, Math.min(limiteY, e.clientY - dragStart.y));
     setPan({ x: novoX, y: novoY });
@@ -260,9 +257,7 @@ export function DiagramaRoadmapReactFlow({
       setResumoSkill(data.resumo);
     } catch (error) {
       console.error(error);
-      setResumoSkill(
-        `**${nodo.label}** – Não foi possível carregar o resumo no momento. Tente novamente mais tarde.`
-      );
+      setResumoSkill(`**${nodo.label}** – Não foi possível carregar o resumo no momento.`);
     } finally {
       setCarregandoResumo(false);
     }
@@ -273,47 +268,49 @@ export function DiagramaRoadmapReactFlow({
   const progressoPercent = totalSkills > 0 ? Math.round((concluidasCount / totalSkills) * 100) : 0;
 
   return (
-    <div className="relative w-full h-full min-h-[500px] bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+    <div className="relative w-full h-full min-h-[600px] bg-[#FCFCFC] dark:bg-[#0A0A0A] rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden font-sans">
       
-      {/* Header com controles - cores sólidas */}
-      <div className="absolute top-3 left-3 right-3 z-30 flex items-center justify-between gap-2 pointer-events-none">
-        <div className="flex items-center gap-3 bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm pointer-events-auto">
+      {/* Header com controles */}
+      <div className="absolute top-6 left-6 right-6 z-30 flex items-center justify-between gap-2 pointer-events-none">
+        
+        {/* Progresso */}
+        <div className="flex items-center gap-4 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md px-5 py-3 rounded-full border border-zinc-200/50 dark:border-zinc-700/50 shadow-[0_4px_12px_rgba(0,0,0,0.03)] pointer-events-auto">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-emerald-600" />
-            <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{concluidasCount}/{totalSkills} concluídas</span>
+            <div className="w-1.5 h-1.5 rounded-full bg-zinc-900 dark:bg-zinc-100" />
+            <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400 tracking-wide">PROGRESSO</span>
           </div>
-          <div className="w-24 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-            <div className="h-full bg-primary transition-all duration-300" style={{ width: `${progressoPercent}%` }} />
+          <div className="w-32 h-1 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+            <div className="h-full bg-zinc-900 dark:bg-zinc-100 transition-all duration-700 ease-out" style={{ width: `${progressoPercent}%` }} />
           </div>
-          <span className="text-xs text-gray-500 dark:text-gray-400">{progressoPercent}%</span>
+          <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 w-8 text-right">{progressoPercent}%</span>
         </div>
 
-        <div className="flex items-center gap-1 bg-white dark:bg-gray-800 px-1.5 py-1 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm pointer-events-auto">
-          <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-600 dark:text-gray-400" onClick={handleZoomOut} disabled={zoomLevel === 'sm'}>
-            <ZoomOut className="h-3.5 w-3.5" />
+        {/* Controles de Zoom */}
+        <div className="flex items-center gap-1 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md px-2 py-1.5 rounded-full border border-zinc-200/50 dark:border-zinc-700/50 shadow-[0_4px_12px_rgba(0,0,0,0.03)] pointer-events-auto">
+          <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100" onClick={handleZoomOut} disabled={zoomLevel === 'sm'}>
+            <ZoomOut className="h-4 w-4" />
           </Button>
-          <Badge variant="outline" className="text-[10px] px-2 h-6 bg-transparent border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">
-            {zoomLevel === 'sm' ? 'Visão' : zoomLevel === 'md' ? 'Normal' : 'Detalhe'}
-          </Badge>
-          <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-600 dark:text-gray-400" onClick={handleZoomIn} disabled={zoomLevel === 'lg'}>
-            <ZoomIn className="h-3.5 w-3.5" />
+          <div className="w-px h-4 bg-zinc-200 dark:bg-zinc-700 mx-1" />
+          <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100" onClick={handleZoomReset}>
+            <Maximize2 className="h-4 w-4" />
           </Button>
-          <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-600 dark:text-gray-400" onClick={handleZoomReset}>
-            <Maximize2 className="h-3.5 w-3.5" />
+          <div className="w-px h-4 bg-zinc-200 dark:bg-zinc-700 mx-1" />
+          <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100" onClick={handleZoomIn} disabled={zoomLevel === 'lg'}>
+            <ZoomIn className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
       {/* Área do diagrama */}
       <div 
-        className="w-full h-full overflow-hidden cursor-grab active:cursor-grabbing"
+        className={`w-full h-full overflow-hidden ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
         <div 
-          className="origin-top-left transition-transform duration-200 ease-out"
+          className="origin-top-left transition-transform duration-300 ease-out"
           style={{ 
             transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoomAtual})`,
             width: larguraTotal,
@@ -325,40 +322,42 @@ export function DiagramaRoadmapReactFlow({
             className="w-full h-full"
             style={{ minWidth: larguraTotal, minHeight: alturaTotal }}
           >
-            <defs>
-              <filter id="sombra" x="-20%" y="-20%" width="140%" height="140%">
-                <feDropShadow dx="0" dy="3" stdDeviation="5" floodColor="rgba(0,0,0,0.15)" />
-              </filter>
-            </defs>
-
-            {/* Grade sutil */}
-            <pattern id="grade" width="30" height="30" patternUnits="userSpaceOnUse">
-              <path d="M 30 0 L 0 0 0 30" fill="none" stroke="currentColor" strokeWidth="0.3" opacity="0.05" />
+            {/* Dot Grid Minimalista */}
+            <pattern id="dotGrid" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
+              <circle cx="2" cy="2" r="1" className="text-zinc-300/80 dark:text-zinc-800/80" fill="currentColor" />
             </pattern>
-            <rect width={larguraTotal} height={alturaTotal} fill="url(#grade)" className="text-gray-400" />
+            <rect width={larguraTotal} height={alturaTotal} fill="url(#dotGrid)" />
 
-            {/* Arestas */}
+            {/* Arestas - Linhas com sutil dica de cor da fase */}
             {grafo.arestas.map((aresta, i) => {
               const de = posicoes.get(aresta.de);
               const para = posicoes.get(aresta.para);
               const nodoPara = grafo.nodos.find(n => n.id === aresta.para);
               if (!de || !para || !nodoPara) return null;
-              const estilo = ESTILOS_FASE[nodoPara.fase];
+              
+              const ehFase = nodoPara.tipo === 'fase';
               const concluida = nodoPara.tipo === 'skill' && skillsConcluidas.has(nodoPara.id);
+              const paletaFase = ESTILOS_FASE_MINIMALISTA[nodoPara.fase] || ESTILOS_FASE_MINIMALISTA[0];
+              
               const xDe = de.x + de.largura;
               const yDe = de.y + de.altura / 2;
               const xPara = para.x;
               const yPara = para.y + para.altura / 2;
+              const tension = 60;
+
               return (
                 <path
                   key={i}
-                  d={`M ${xDe} ${yDe} C ${xDe + 40} ${yDe}, ${xPara - 40} ${yPara}, ${xPara} ${yPara}`}
+                  d={`M ${xDe} ${yDe} C ${xDe + tension} ${yDe}, ${xPara - tension} ${yPara}, ${xPara} ${yPara}`}
                   fill="none"
-                  stroke={estilo.edgeColor}
-                  strokeWidth={concluida ? 1.5 : 2.5}
-                  strokeDasharray={nodoPara.fase === 1 ? '0' : concluida ? '3 3' : '6 4'}
-                  opacity={concluida ? 0.5 : 0.8}
-                  className="transition-all duration-200"
+                  stroke="currentColor"
+                  className={`
+                    transition-all duration-300 ease-in-out
+                    ${ehFase ? 'text-zinc-300 dark:text-zinc-800' : 
+                      concluida ? 'text-zinc-900 dark:text-zinc-400' : paletaFase.linha}
+                  `}
+                  strokeWidth={concluida ? 2 : 1.5}
+                  strokeDasharray={!concluida && !ehFase ? '4 4' : 'none'}
                 />
               );
             })}
@@ -367,73 +366,85 @@ export function DiagramaRoadmapReactFlow({
             {grafo.nodos.map((nodo) => {
               const pos = posicoes.get(nodo.id);
               if (!pos) return null;
-              const estilo = ESTILOS_FASE[nodo.fase];
+              
               const ehSkill = nodo.tipo === 'skill';
               const ehConcluida = skillsConcluidas.has(nodo.id);
-              const ehClicavel = ehSkill;
+              const paleta = ESTILOS_FASE_MINIMALISTA[nodo.fase] || ESTILOS_FASE_MINIMALISTA[0];
+              
               return (
-                <g
-                  key={nodo.id}
-                  style={{ cursor: ehClicavel ? 'pointer' : 'default' }}
-                  onClick={() => ehClicavel && handleSkillClick(nodo)}
-                >
+                <g key={nodo.id} className={ehSkill ? "cursor-pointer group" : ""}>
                   <foreignObject
                     x={pos.x}
                     y={pos.y}
                     width={pos.largura}
                     height={pos.altura}
                     className="overflow-visible"
+                    onClick={(e) => {
+                      if (ehSkill) {
+                        e.stopPropagation();
+                        handleSkillClick(nodo);
+                      }
+                    }}
                   >
-                    <div
-                      className={`
-                        w-full h-full rounded-xl border-2 shadow-sm
-                        ${estilo.bg} ${estilo.border} ${estilo.text}
-                        ${ehConcluida ? 'ring-2 ring-emerald-500' : ''}
-                        ${ehClicavel ? 'hover:shadow-md hover:-translate-y-0.5' : ''}
-                        transition-all duration-200 ease-out
-                        flex flex-col overflow-hidden
-                      `}
-                      style={{ filter: 'url(#sombra)' }}
-                    >
-                      <div className="flex items-center justify-between px-2 py-1 border-b border-current/10 shrink-0">
-                        {ehSkill && (
-                          <Checkbox
-                            checked={ehConcluida}
-                            onCheckedChange={(checked) => handleToggleSkill(nodo, checked === true)}
-                            onClick={(e) => e.stopPropagation()}
-                            className="h-3.5 w-3.5 border-2 shrink-0 bg-white dark:bg-gray-900"
-                          />
-                        )}
-                        {nodo.tipo === 'fase' && (
-                          <Badge className={`${estilo.badge} text-[9px] font-normal px-1.5 py-0`}>
-                            Fase {nodo.fase}
-                          </Badge>
-                        )}
-                        {nodo.tipo === 'raiz' && (
-                          <Badge className="bg-primary-foreground/20 text-primary-foreground text-[9px]">
-                            Objetivo
-                          </Badge>
-                        )}
-                        <div className="flex-1" />
-                        {ehSkill && ehConcluida && (
-                          <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                        )}
-                      </div>
-                      <div className="flex-1 flex items-center justify-center px-2 py-1 min-h-0">
-                        <span className={`
-                          text-center font-medium leading-tight break-words line-clamp-2
-                          ${nodo.tipo === 'raiz' ? 'text-sm' : nodo.tipo === 'fase' ? 'text-xs' : 'text-[11px]'}
-                          ${ehConcluida && ehSkill ? 'line-through opacity-70' : ''}
-                        `}>
+                    {/* Nodo Raiz */}
+                    {nodo.tipo === 'raiz' && (
+                      <div className="w-full h-full bg-zinc-900 dark:bg-zinc-100 rounded-2xl flex items-center justify-center shadow-[0_8px_24px_rgba(0,0,0,0.12)] border border-transparent">
+                        <span className="text-zinc-50 dark:text-zinc-900 font-semibold tracking-tight text-lg px-6 text-center leading-snug">
                           {nodo.label}
                         </span>
                       </div>
-                      {ehClicavel && !ehConcluida && (
-                        <div className="absolute -right-1 -top-1">
-                          <ChevronRight className="h-3 w-3 text-gray-500 dark:text-gray-400 animate-pulse" />
-                        </div>
-                      )}
-                    </div>
+                    )}
+
+                    {/* Título da Fase – com borda e fundo suave */}
+                    {nodo.tipo === 'fase' && (
+                      <div className={`
+                        w-full h-full rounded-xl flex items-center justify-center px-4
+                        border shadow-sm transition-all duration-200
+                        ${paleta.light} ${paleta.dark}
+                        ${paleta.bordaLight} ${paleta.bordaDark}
+                      `}>
+                        <span className={`
+                          text-[12px] font-semibold tracking-tight
+                          ${paleta.textoLight} ${paleta.textoDark}
+                        `}>
+                          Fase {nodo.fase} • {nodo.label}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Card de Skill */}
+                    {nodo.tipo === 'skill' && (
+                      <div className={`
+                        w-full h-full rounded-2xl flex items-center px-4 gap-4 transition-all duration-300
+                        border backdrop-blur-sm
+                        ${ehConcluida 
+                          ? 'bg-zinc-50/50 dark:bg-zinc-900/30 border-zinc-200/50 dark:border-zinc-800/50 opacity-50 shadow-none' 
+                          : `${paleta.light} ${paleta.dark} shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:-translate-y-0.5`}
+                      `}>
+                        <Checkbox
+                          checked={ehConcluida}
+                          onCheckedChange={(checked) => handleToggleSkill(nodo, checked === true)}
+                          onClick={(e) => e.stopPropagation()}
+                          className={`
+                            h-5 w-5 rounded-full border-2 transition-colors
+                            ${ehConcluida 
+                              ? 'border-zinc-400 bg-zinc-400 text-white dark:border-zinc-600 dark:bg-zinc-600 dark:text-zinc-900' 
+                              : 'border-zinc-300/80 dark:border-zinc-600/80 bg-white dark:bg-zinc-900'}
+                          `}
+                        />
+                        <span className={`
+                          flex-1 font-medium text-sm tracking-tight leading-snug break-words line-clamp-2 transition-colors
+                          ${ehConcluida 
+                            ? 'text-zinc-400 dark:text-zinc-600 line-through' 
+                            : `${paleta.textoLight} ${paleta.textoDark}`}
+                        `}>
+                          {nodo.label}
+                        </span>
+                        {!ehConcluida && (
+                          <ChevronRight className={`h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ${paleta.textoLight} ${paleta.textoDark}`} />
+                        )}
+                      </div>
+                    )}
                   </foreignObject>
                 </g>
               );
@@ -454,8 +465,9 @@ export function DiagramaRoadmapReactFlow({
         />
       )}
 
-      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-[10px] text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700 shadow-sm pointer-events-none">
-        Arraste para mover • Clique em uma skill para ver detalhes • ☑ Marque como concluída
+      {/* Rodapé sutil */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[11px] font-medium tracking-wide text-zinc-400 dark:text-zinc-500 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md px-4 py-2 rounded-full border border-zinc-200/50 dark:border-zinc-700/50 shadow-sm pointer-events-none">
+        Arraste para navegar • Clique para detalhes
       </div>
     </div>
   );
