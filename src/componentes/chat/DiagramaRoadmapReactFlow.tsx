@@ -4,7 +4,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { parsearRoadmap, GrafoRoadmap, NodoRoadmap } from '@/lib/parsear-roadmap';
 import { Button } from '@/componentes/ui/button';
 import { Checkbox } from '@/componentes/ui/checkbox';
-import { Check, ChevronRight, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { ChevronRight, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { TooltipResumoSkill } from './TooltipResumoSkill';
 
 interface DiagramaRoadmapReactFlowProps {
