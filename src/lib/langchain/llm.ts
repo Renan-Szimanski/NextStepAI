@@ -24,8 +24,8 @@ const MODELO_FALLBACK  = 'deepseek-v4-flash';
 const CONFIG_LLM = {
   temperatura:    0.4,
   maxTokensSaida: 4096,
-  timeoutMs:      8000,
-  maxRetries:     1,
+  timeoutMs: 8500,
+  maxRetries: 2,
 } as const;
 
 // ─── Tipos internos da API DeepSeek ───────────────────────────────────────────
@@ -339,15 +339,4 @@ export function criarLLM(estrategia: EstrategiaLLM = 'principal'): ChatDeepSeekC
     temperature: CONFIG_LLM.temperatura,
     maxTokens:   CONFIG_LLM.maxTokensSaida,
   });
-}
-
-export function criarLLMParaAgente(estrategia: EstrategiaLLM = 'principal'): ChatDeepSeekCustom {
-  return criarLLM(estrategia);
-}
-
-export function extrairReasoningContent(message: AIMessage): string | undefined {
-  return (
-    (message as AIMessage & ComReasoning).reasoning_content ??
-    (message.additional_kwargs?.reasoning_content as string | undefined)
-  );
 }
