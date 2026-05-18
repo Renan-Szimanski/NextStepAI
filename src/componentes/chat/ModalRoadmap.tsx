@@ -1,5 +1,4 @@
 // src/componentes/chat/ModalRoadmap.tsx
-
 'use client';
 
 import { useState, useCallback } from 'react';
@@ -10,17 +9,35 @@ import {
   DialogTitle,
 } from '@/componentes/ui/dialog';
 import { Button } from '@/componentes/ui/button';
-import { Map, Download, Loader2 } from 'lucide-react';
+import { Map, Download } from 'lucide-react';
 import { DiagramaRoadmapReactFlow } from './DiagramaRoadmapReactFlow';
 import { extrairCargoAlvo } from '@/lib/detectar-roadmap';
 
 interface ModalRoadmapProps {
   textoRoadmap: string;
+  aberto?: boolean;
+  onAbertoChange?: (open: boolean) => void;
+  hideInlineButton?: boolean;
 }
 
-export function ModalRoadmap({ textoRoadmap }: ModalRoadmapProps) {
-  const [aberto, setAberto] = useState(false);
-  const [gerandoPdf, setGerandoPdf] = useState(false);
+export function ModalRoadmap({ 
+  textoRoadmap, 
+  aberto: abertoProp, 
+  onAbertoChange,
+  hideInlineButton = false
+}: ModalRoadmapProps) {
+  const [abertoInterno, setAbertoInterno] = useState(false);
+  
+  const isControlled = abertoProp !== undefined;
+  const isOpen = isControlled ? abertoProp : abertoInterno;
+
+  const setIsOpen = (value: boolean) => {
+    if (isControlled) {
+      onAbertoChange?.(value);
+    } else {
+      setAbertoInterno(value);
+    }
+  };
 
   const cargoAlvo = extrairCargoAlvo(textoRoadmap);
   const tituloLegivel = cargoAlvo
@@ -28,7 +45,6 @@ export function ModalRoadmap({ textoRoadmap }: ModalRoadmapProps) {
     : 'Roadmap de Carreira';
 
   const handleDownloadPdf = useCallback(async () => {
-    setGerandoPdf(true);
     try {
       const { gerarPdfRoadmap } = await import('@/lib/gerar-pdf-roadmap');
       const blob = await gerarPdfRoadmap(textoRoadmap);
@@ -40,47 +56,44 @@ export function ModalRoadmap({ textoRoadmap }: ModalRoadmapProps) {
       URL.revokeObjectURL(url);
     } catch (e) {
       console.error('[ModalRoadmap] Erro ao gerar PDF:', e);
-    } finally {
-      setGerandoPdf(false);
     }
   }, [textoRoadmap, cargoAlvo]);
 
   return (
     <>
-      <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-800 flex items-center gap-2 flex-wrap">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setAberto(true)}
-          className="gap-2 text-xs font-medium border-primary text-primary hover:bg-primary/10"
-        >
-          <Map className="h-3.5 w-3.5" />
-          Ver Roadmap Visual
-        </Button>
+      {/* Botão inline - renderizado apenas se hideInlineButton for false */}
+      {!hideInlineButton && (
+        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-800 flex items-center gap-2 flex-wrap">
+          <Button
+            id="floating-roadmap-btn"
+            variant="outline"
+            size="sm"
+            onClick={() => setIsOpen(true)}
+            className="gap-2 text-xs font-medium border-primary text-primary hover:bg-primary/10"
+          >
+            <Map className="h-3.5 w-3.5" />
+            Ver Roadmap Visual
+          </Button>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleDownloadPdf}
-          disabled={gerandoPdf}
-          className="gap-2 text-xs text-gray-500 dark:text-gray-400"
-        >
-          {gerandoPdf ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleDownloadPdf}
+            className="gap-2 text-xs text-gray-500 dark:text-gray-400"
+          >
             <Download className="h-3.5 w-3.5" />
-          )}
-          {gerandoPdf ? 'Gerando PDF…' : 'Baixar PDF'}
-        </Button>
-      </div>
+            Baixar PDF
+          </Button>
+        </div>
+      )}
 
-      <Dialog open={aberto} onOpenChange={setAberto}>
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="flex flex-col gap-0 p-0 overflow-hidden bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800"
           style={{
-            width: '95vw',
-            maxWidth: '1200px',
-            height: '90vh',
-            maxHeight: '90vh',
+            width: '98vw',
+            maxWidth: '1400px',
+            height: '92vh',
+            maxHeight: '92vh',
           }}
         >
           <DialogHeader className="shrink-0 px-5 pt-5 pb-3 border-b border-gray-200 dark:border-gray-800">
@@ -94,15 +107,10 @@ export function ModalRoadmap({ textoRoadmap }: ModalRoadmapProps) {
                 variant="outline"
                 size="sm"
                 onClick={handleDownloadPdf}
-                disabled={gerandoPdf}
                 className="gap-1.5 text-xs shrink-0"
               >
-                {gerandoPdf ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Download className="h-3.5 w-3.5" />
-                )}
-                {gerandoPdf ? 'Gerando…' : 'Baixar PDF'}
+                <Download className="h-3.5 w-3.5" />
+                Baixar PDF
               </Button>
             </div>
 
@@ -126,7 +134,7 @@ export function ModalRoadmap({ textoRoadmap }: ModalRoadmapProps) {
             </div>
           </DialogHeader>
 
-          <div className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900 p-4">
+          <div className="flex-1 overflow-hidden bg-gray-50 dark:bg-gray-900">
             <DiagramaRoadmapReactFlow 
               textoRoadmap={textoRoadmap} 
               onSkillToggle={(skill, concluido) => {

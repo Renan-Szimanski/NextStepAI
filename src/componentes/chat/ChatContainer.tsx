@@ -1,3 +1,4 @@
+// src/componentes/chat/ChatContainer.tsx
 'use client'
 
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any */
@@ -5,15 +6,17 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { v4 as uuidv4 } from 'uuid'
 import { toast } from 'sonner'
-import { Compass } from 'lucide-react'
+import { Compass, Map } from 'lucide-react'
 
 import type { Mensagem } from '@/tipos'
 import type { EventoStreamSSE } from '@/tipos/agente'
 import type { MensagemPersistida } from '@/tipos/historico'
 import { lerStreamSSE } from '@/lib/stream'
+import { contemRoadmap } from '@/lib/detectar-roadmap'
 
 import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
+import { ModalRoadmap } from './ModalRoadmap'
 
 import BotaoLogout from '@/componentes/auth/BotaoLogout'
 import { ThemeToggle } from '@/componentes/theme-toggle'
@@ -47,6 +50,16 @@ const MENSAGEM_BOAS_VINDAS: Mensagem = {
   criadoEm: new Date(),
 }
 
+function extrairRoadmapDasMensagens(mensagens: Mensagem[]): string | null {
+  for (let i = mensagens.length - 1; i >= 0; i--) {
+    const msg = mensagens[i]
+    if (msg.papel === 'assistant' && contemRoadmap(msg.conteudo)) {
+      return msg.conteudo
+    }
+  }
+  return null
+}
+
 export function ChatContainer({ userId, historicoInicial, conversaId: conversaIdProp }: ChatContainerProps) {
   const router = useRouter()
   const [conversaId, setConversaId] = useState<string | undefined>(conversaIdProp)
@@ -60,8 +73,68 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
   const [currentToolCall, setCurrentToolCall] = useState<string | null>(null)
   const [hasCurriculo, setHasCurriculo] = useState(false)
 
-  const [sessionId] = useState<string>(() => uuidv4())
-  const abortControllerRef = useRef<AbortController | null>(null)
+  // Roadmap persistente
+  const [roadmapSalvo, setRoadmapSalvo] = useState<string | null>(null)
+  
+  // Estado para controlar a abertura do modal via botão flutuante
+  const [modalRoadmapAberto, setModalRoadmapAberto] = useState(false)
+
+  const carregarRoadmap = async (id: string | undefined, msgs: Mensagem[]) => {
+    if (!id) {
+      setRoadmapSalvo(null)
+      return
+    }
+
+    const cacheKey = `roadmap_${id}`
+    const cached = localStorage.getItem(cacheKey)
+    if (cached) {
+      setRoadmapSalvo(cached)
+      return
+    }
+
+    try {
+      const res = await fetch(`/api/conversas/${id}/roadmap`)
+      const data = await res.json()
+      if (data.roadmap) {
+        localStorage.setItem(cacheKey, data.roadmap)
+        setRoadmapSalvo(data.roadmap)
+        return
+      }
+    } catch (err) {
+      console.error('[Roadmap] Erro ao buscar backend:', err)
+    }
+
+    const extraido = extrairRoadmapDasMensagens(msgs)
+    if (extraido) {
+      localStorage.setItem(cacheKey, extraido)
+      setRoadmapSalvo(extraido)
+      fetch('/api/planos/salvar-mensagem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversaId: id, papel: 'assistente', conteudo: extraido }),
+      }).catch(e => console.error('Falha ao salvar roadmap extraído:', e))
+    } else {
+      setRoadmapSalvo(null)
+    }
+  }
+
+  // Recarrega ao mudar de conversa
+  useEffect(() => {
+    if (conversaId) {
+      carregarRoadmap(conversaId, mensagens)
+    } else {
+      setRoadmapSalvo(null)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversaId])
+
+  // Fallback: se novas mensagens chegarem e ainda não temos roadmap, tenta extrair
+  useEffect(() => {
+    if (conversaId && mensagens.length > 0 && !roadmapSalvo) {
+      const extraido = extrairRoadmapDasMensagens(mensagens)
+      if (extraido) carregarRoadmap(conversaId, mensagens)
+    }
+  }, [mensagens, conversaId, roadmapSalvo])
 
   useEffect(() => {
     async function carregarStatusCurriculo() {
@@ -95,7 +168,6 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
     conversaIdParam?: string
   ): Promise<string | undefined> {
     const idParaUsar = conversaIdParam ?? conversaId
-
     const response = await fetch('/api/planos/salvar-mensagem', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -107,12 +179,7 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
         cargoAlvo,
       }),
     })
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.error || 'Falha ao salvar mensagem')
-    }
-
+    if (!response.ok) throw new Error('Falha ao salvar mensagem')
     const data = await response.json()
     if (!idParaUsar && data.conversaId) {
       setConversaId(data.conversaId)
@@ -134,23 +201,15 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
     }
 
     const mensagensAtualizadas = [...mensagens, novaMensagemUsuario]
-
     setMensagens([
       ...mensagensAtualizadas,
-      {
-        id: uuidv4(),
-        papel: 'assistant',
-        conteudo: '',
-        timestamp: Date.now(),
-        criadoEm: new Date(),
-      },
+      { id: uuidv4(), papel: 'assistant', conteudo: '', timestamp: Date.now(), criadoEm: new Date() },
     ])
     setIsStreaming(true)
     setCurrentToolCall(null)
 
     let idAtual = conversaId
-    const isNovaConversa =
-      !idAtual && mensagens.length === 1 && mensagens[0].papel === 'assistant' && mensagens[0].conteudo === MENSAGEM_BOAS_VINDAS.conteudo
+    const isNovaConversa = !idAtual && mensagens.length === 1 && mensagens[0].papel === 'assistant' && mensagens[0].conteudo === MENSAGEM_BOAS_VINDAS.conteudo
 
     try {
       if (isNovaConversa) {
@@ -158,11 +217,9 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
         if (novoId) idAtual = novoId
       } else if (idAtual) {
         await salvarMensagemNoHistorico('usuario', texto, undefined, undefined, idAtual)
-      } else {
-        console.warn('Estado inválido: sem conversaId e não é primeira mensagem')
       }
     } catch (err) {
-      console.error('Erro ao salvar mensagem do usuário:', err)
+      console.error(err)
       toast.error('Erro ao iniciar conversa. Tente novamente.')
       setMensagens((prev) => prev.slice(0, -1))
       setIsStreaming(false)
@@ -176,30 +233,22 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
       const response = await fetch('/api/mensagens', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: mensagensAtualizadas,
-          sessionId,
-        }),
+        body: JSON.stringify({ messages: mensagensAtualizadas, sessionId }),
         signal: abortController.signal,
       })
-
-      if (!response.ok) {
-        throw new Error('Erro na requisição')
-      }
+      if (!response.ok) throw new Error('Erro na requisição')
 
       let respostaCompleta = ''
-
       for await (const evento of lerStreamSSE(response)) {
         switch (evento.type) {
           case 'token':
             respostaCompleta += evento.content
             setMensagens((prev) =>
-              prev.map((msg, index) => {
-                if (index === prev.length - 1 && msg.papel === 'assistant') {
-                  return { ...msg, conteudo: msg.conteudo + evento.content }
-                }
-                return msg
-              })
+              prev.map((msg, idx) =>
+                idx === prev.length - 1 && msg.papel === 'assistant'
+                  ? { ...msg, conteudo: msg.conteudo + evento.content }
+                  : msg
+              )
             )
             break
           case 'tool_call':
@@ -213,30 +262,19 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
             if (respostaCompleta && idAtual) {
               try {
                 await salvarMensagemNoHistorico('assistente', respostaCompleta, undefined, undefined, idAtual)
-                console.log('✅ Mensagem do assistente salva')
-
+                if (contemRoadmap(respostaCompleta)) {
+                  localStorage.setItem(`roadmap_${idAtual}`, respostaCompleta)
+                  setRoadmapSalvo(respostaCompleta)
+                } else {
+                  await carregarRoadmap(idAtual, [...mensagensAtualizadas, { id: uuidv4(), papel: 'assistant', conteudo: respostaCompleta, timestamp: Date.now(), criadoEm: new Date() }])
+                }
                 if (isNovaConversa && idAtual) {
-                  console.log('🚀 Gerando título automático para conversa:', idAtual)
-                  fetch('/api/planos/gerar-titulo', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ conversaId: idAtual }),
-                  })
-                    .then((res) => res.json())
-                    .then((data) => {
-                      if (data.titulo) {
-                        console.log('🏷️ Título gerado:', data.titulo)
-                        router.refresh()
-                      }
-                    })
-                    .catch((err) => console.error('❌ Erro ao gerar título:', err))
+                  fetch('/api/planos/gerar-titulo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conversaId: idAtual }) }).catch(() => {})
                 }
               } catch (err) {
-                console.error('❌ Erro ao salvar resposta do assistente:', err)
-                toast.error('Erro ao salvar a resposta. A conversa pode não ser persistida.')
+                console.error(err)
+                toast.error('Erro ao salvar a resposta.')
               }
-            } else {
-              console.warn('⚠️ Não salvou assistente: respostaCompleta vazia ou idAtual inválido')
             }
             return
           case 'error':
@@ -247,84 +285,83 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
       }
     } catch (error) {
       console.error(error)
-      toast.error('Erro de conexão com o servidor')
+      toast.error('Erro de conexão')
       setMensagens((prev) => prev.slice(0, -1))
       setIsStreaming(false)
+    } finally {
+      abortControllerRef.current = null
     }
   }
 
   async function handleUploadSuccess(nomeArquivo: string, urlLeitura: string) {
     setHasCurriculo(true)
-
-    fetch('/api/curriculo')
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        return res.json()
-      })
-      .then((data) => {
-        if (!data.curriculo) {
-          console.warn(
-            '[ChatContainer] Confirmação em background: currículo não encontrado no servidor, ' +
-            'mas o upload foi confirmado anteriormente. Mantendo estado true.'
-          )
-        }
-      })
-      .catch((err) => {
-        console.error('[ChatContainer] Erro ao confirmar currículo no servidor (ignorado):', err)
-      })
-
-    const mensagem = `✅ Realizei o envio do meu currículo: 📄 ${nomeArquivo}\n\n`
-    await enviarMensagem(mensagem, true)
+    await enviarMensagem(`✅ Enviei meu currículo: ${nomeArquivo}`, true)
   }
 
+  const abortControllerRef = useRef<AbortController | null>(null)
+  const [sessionId] = useState(() => uuidv4())
+
   useEffect(() => {
-    return () => {
-      abortControllerRef.current?.abort()
-    }
+    return () => abortControllerRef.current?.abort()
   }, [])
 
   return (
-    <main role="main" aria-label="Conversa com o Pathfinder" className="flex h-full flex-col bg-background relative">
-      <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-border/40 bg-background/80 backdrop-blur-md px-4 py-3 shadow-sm transition-colors shrink-0">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20" aria-hidden="true">
-          <Compass className="h-5 w-5" aria-hidden="true" />
+    <main className="flex h-full flex-col bg-background relative">
+      <header className="sticky top-0 z-10 flex items-center gap-3 border-b bg-background/80 backdrop-blur-md px-4 py-3 shrink-0">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <Compass className="h-5 w-5" />
         </div>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-sm font-semibold tracking-tight text-foreground truncate">Pathfinder</h1>
+        <div className="flex-1">
+          <h1 className="text-sm font-semibold">Pathfinder</h1>
           <div className="flex items-center gap-1.5 mt-0.5">
-            <span
-              className={`h-2 w-2 rounded-full ${
-                isStreaming ? 'animate-pulse bg-amber-500' : 'bg-emerald-500'
-              }`}
-              aria-hidden="true"
-            />
+            <span className={`h-2 w-2 rounded-full ${isStreaming ? 'animate-pulse bg-amber-500' : 'bg-emerald-500'}`} />
             <p className="text-xs font-medium text-muted-foreground">
               {isStreaming ? 'Processando...' : 'Mentor IA Online'}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-3">
           <ThemeToggle />
-          <div className="border-l border-border pl-4">
-            <BotaoLogout />
-          </div>
+          <BotaoLogout />
         </div>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto bg-background/50">
+      <div className="flex-1 overflow-y-auto">
         <MessageList mensagens={mensagens} isStreaming={isStreaming} currentToolCall={currentToolCall} />
       </div>
 
-      <div className="border-t border-border/40 bg-gradient-to-t from-background to-background/95 px-4 py-4 backdrop-blur-sm shrink-0">
-        <div className="mx-auto w-full max-w-[800px]">
-          <MessageInput
-            onSubmit={enviarMensagem}
-            disabled={isStreaming}
-            hasCurriculo={hasCurriculo}
-            onUploadSuccess={handleUploadSuccess}
-          />
-        </div>
+      <div className="border-t px-4 py-4">
+        <MessageInput
+          onSubmit={enviarMensagem}
+          disabled={isStreaming}
+          hasCurriculo={hasCurriculo}
+          onUploadSuccess={handleUploadSuccess}
+        />
       </div>
+
+      {/* ✅ Apenas o botão flutuante com ícone de roadmap no canto inferior direito */}
+      {roadmapSalvo && (
+        <div className="fixed bottom-24 right-6 z-50">
+          <button
+            onClick={() => setModalRoadmapAberto(true)}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full p-3 shadow-lg transition-all hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary/50"
+            aria-label="Ver Roadmap"
+            title="Ver Roadmap Visual"
+          >
+            <Map className="h-6 w-6" />
+          </button>
+        </div>
+      )}
+
+      {/* ✅ Modal Roadmap com botão inline oculto (hideInlineButton=true) */}
+      {roadmapSalvo && (
+        <ModalRoadmap 
+          textoRoadmap={roadmapSalvo}
+          aberto={modalRoadmapAberto}
+          onAbertoChange={setModalRoadmapAberto}
+          hideInlineButton={true}
+        />
+      )}
     </main>
   )
 }

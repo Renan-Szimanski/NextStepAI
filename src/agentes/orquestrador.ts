@@ -8,7 +8,7 @@ import type { EventoStreamSSE } from '../tipos/agente';
 import type { Mensagem } from '../tipos/index';
 
 const PREFIXO = '[Orquestrador]';
-const AGENT_TIMEOUT_MS = 9000;
+const AGENT_TIMEOUT_MS = 15000;
 
 export async function* processarMensagem(
   messages: Mensagem[],

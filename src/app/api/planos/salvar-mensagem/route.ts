@@ -1,6 +1,9 @@
+// src/app/api/planos/salvar-mensagem/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { criarConversa, salvarMensagem } from '@/lib/supabase/historico'
+import { contemRoadmap } from '@/lib/detectar-roadmap'
+import { supabaseAdmin } from '@/lib/supabase/server' // usado para bypass RLS
 
 export async function POST(req: NextRequest) {
   const sessao = await auth()
@@ -11,18 +14,15 @@ export async function POST(req: NextRequest) {
   let body
   try {
     body = await req.json()
-    console.log('[salvar-mensagem] body recebido:', body) // LOG
   } catch {
     return NextResponse.json({ error: 'JSON inválido' }, { status: 400 })
   }
 
   const { conversaId, papel, conteudo, primeiraMsgTitulo, cargoAlvo } = body
 
-  // Normaliza: aceita 'assistant' (inglês) ou 'assistente' (português)
   let papelNormalizado = papel
   if (papel === 'assistant') papelNormalizado = 'assistente'
   if (papelNormalizado !== 'usuario' && papelNormalizado !== 'assistente') {
-    console.error('[salvar-mensagem] papel inválido:', papel)
     return NextResponse.json(
       { error: `Papel inválido: ${papel}. Use 'usuario' ou 'assistente'` },
       { status: 400 }
@@ -51,6 +51,30 @@ export async function POST(req: NextRequest) {
     }
 
     await salvarMensagem(idConversa, papelNormalizado, conteudo)
+
+    // --- Persistência do roadmap com supabaseAdmin (bypass RLS) ---
+    if (papelNormalizado === 'assistente' && contemRoadmap(conteudo)) {
+      const { data: conversa } = await supabaseAdmin
+        .from('conversas')
+        .select('roadmap_data')
+        .eq('id', idConversa)
+        .single()
+
+      if (!conversa?.roadmap_data) {
+        const { error: updateError } = await supabaseAdmin
+          .from('conversas')
+          .update({ roadmap_data: conteudo })
+          .eq('id', idConversa)
+        if (updateError) {
+          console.error('[salvar-mensagem] Erro ao salvar roadmap:', updateError)
+        } else {
+          console.log('[salvar-mensagem] Roadmap salvo para conversa:', idConversa)
+        }
+      } else {
+        console.log('[salvar-mensagem] Roadmap já existente, não sobrescrevendo')
+      }
+    }
+
     return NextResponse.json({ ok: true, conversaId: idConversa })
   } catch (error) {
     console.error('[salvar-mensagem] erro:', error)
