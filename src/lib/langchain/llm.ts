@@ -19,7 +19,7 @@ const MODELO_FALLBACK = 'deepseek-v4-flash';   // mesmo modelo como fallback seg
 const CONFIG_LLM = {
   temperatura: 0.4,
   maxTokensSaida: 4096,
-  timeoutMs: 30_000,
+  timeoutMs: 8500,
   maxRetries: 2,
 } as const;
 
