@@ -268,17 +268,6 @@ export function DiagramaRoadmapReactFlow({
     }
   }, []);
 
-  function gerarResumoSimulado(skill: string): string {
-    const resumos: Record<string, string> = {
-      'React': 'Resumo: Biblioteca JavaScript para interfaces. Aprenda: componentes, hooks (useState, useEffect), JSX, props. Pratique criando um todo-list. Pré-requisitos: JavaScript moderno.',
-      'TypeScript': 'Resumo: JavaScript com tipos. Aprenda: interfaces, types, generics, config tsconfig. Pratique convertendo projetos JS. Pré-requisitos: JS intermediário.',
-      'Node.js': 'Resumo: Runtime JS no servidor. Aprenda: modules, Express, async/await, APIs REST. Pratique criando uma API simples. Pré-requisitos: JS básico.',
-      'SQL': 'Resumo: Linguagem para bancos relacionais. Aprenda: SELECT, JOIN, WHERE, indexes. Pratique com PostgreSQL. Pré-requisitos: lógica de programação.',
-      'Docker': 'Resumo: Containerização de apps. Aprenda: Dockerfile, docker-compose, volumes. Pratique containerizando uma app Node. Pré-requisitos: linha de comando.',
-    };
-    return resumos[skill] || `Resumo: **${skill}** — Skill essencial para o cargo. Foque em: conceitos fundamentais, prática com projetos reais, e revisão periódica. Dica: aplique imediatamente em um projeto pessoal.`;
-  }
-
   const totalSkills = grafo.nodos.filter(n => n.tipo === 'skill').length;
   const concluidasCount = grafo.nodos.filter(n => n.tipo === 'skill' && skillsConcluidas.has(n.id)).length;
   const progressoPercent = totalSkills > 0 ? Math.round((concluidasCount / totalSkills) * 100) : 0;

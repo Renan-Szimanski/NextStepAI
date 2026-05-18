@@ -1,6 +1,7 @@
+// src/componentes/chat/TooltipResumoSkill.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import ReactMarkdown, { Components } from 'react-markdown';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/componentes/ui/sheet';
 import { Button } from '@/componentes/ui/button';
@@ -82,7 +83,7 @@ export function TooltipResumoSkill({
   const [recursos, setRecursos] = useState<Recurso[]>([]);
   const [carregandoRecursos, setCarregandoRecursos] = useState(false);
 
-  const buscarRecursos = async () => {
+  const buscarRecursos = useCallback(async () => {
     setCarregandoRecursos(true);
     try {
       const response = await fetch('/api/buscar-recursos', {
@@ -101,11 +102,11 @@ export function TooltipResumoSkill({
     } finally {
       setCarregandoRecursos(false);
     }
-  };
+  }, [skill]);
 
   useEffect(() => {
     if (skill) buscarRecursos();
-  }, [skill]);
+  }, [buscarRecursos, skill]);
 
   return (
     <Sheet open={!!skill} onOpenChange={(open) => !open && onClose()}>

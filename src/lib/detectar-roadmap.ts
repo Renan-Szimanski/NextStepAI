@@ -1,25 +1,27 @@
 // src/lib/detectar-roadmap.ts
+import { parsearRoadmap } from './parsear-roadmap';
 
 /**
  * Detecta se uma mensagem do assistente contém um roadmap completo.
- * Atualizado para ser consistente com o parser.
+ * Versão robusta: tenta o parser e, se falhar, usa regex mais tolerante.
  */
-
-import { parsearRoadmap } from './parsear-roadmap';
-
 export function contemRoadmap(texto: string): boolean {
-  const padroesFases = [
-    /curto\s+prazo\s*\(\s*\d+\s*[-–—]\s*\d+\s*meses?\s*\)/i,
-    /m[eé]dio\s+prazo\s*\(\s*\d+\s*[-–—]\s*\d+\s*meses?\s*\)/i,
-    /longo\s+prazo\s*\(\s*\d+\s*[-–—]\s*\d+\s*meses?\s*\)/i,
-  ];
-  return padroesFases.every((padrao) => padrao.test(texto));
+  // 1. Tenta parsear – se conseguir extrair pelo menos uma fase, é roadmap
+  try {
+    const grafo = parsearRoadmap(texto);
+    if (grafo.nodos.length > 1) return true;
+  } catch {
+    // 2. Fallback: regex que aceita formatação markdown (negrito, itálico) e parênteses opcionais
+    const padroesFases = [
+      /curto\s+prazo\s*\(?\s*\d+\s*[-–—]\s*\d+\s*meses?\s*\)?/i,
+      /m[eé]dio\s+prazo\s*\(?\s*\d+\s*[-–—]\s*\d+\s*meses?\s*\)?/i,
+      /longo\s+prazo\s*\(?\s*\d+\s*[-–—]\s*\d+\s*meses?\s*\)?/i,
+    ];
+    return padroesFases.some(padrao => padrao.test(texto));
+  }
+  return false;
 }
 
-/**
- * Extrai o cargo-alvo usando o mesmo parser do diagrama para garantir consistência.
- * Isso evita que o título do Modal/PDF seja diferente do título do Diagrama.
- */
 export function extrairCargoAlvo(texto: string): string | null {
   try {
     const grafo = parsearRoadmap(texto);
