@@ -278,7 +278,7 @@ export function ChatContainer({ userId, historicoInicial, conversaId: conversaId
             }
             return
           case 'error':
-            toast.error('Erro no processamento da IA')
+            toast.warning('Erro no processamento da IA. Envie sua mensagem novamente.')
             setIsStreaming(false)
             return
         }
