@@ -163,17 +163,6 @@ consultar_banco_vetorial --> SupabaseClient
 acompanhar_progresso --> SupabaseClient
 buscar_recursos_educacionais --> TavilyAPI
 ```
-
-## Fluxo Kanban Representado
-
-| Coluna | Classes envolvidas | Responsabilidade |
-|---|---|---|
-| **Entrada** | `ChatContainer`, `MessageInput`, `UploadPopover` | Usuário envia mensagem e currículo |
-| **Análise** | `Orquestrador`, `AgentePathfinder`, `extrair_texto_pdf`, `estruturar_dados_curriculo` | Processamento do currículo |
-| **Pesquisa** | `consultar_banco_vetorial`, `buscar_recursos_educacionais` | Busca de vagas e materiais educacionais |
-| **Geração** | `AgentePathfinder`, `DiagramaRoadmapReactFlow`, `ModalRoadmap` | Criação do roadmap e visualização |
-| **Conclusão** | `acompanhar_progresso`, `SupabaseClient`, `Conversa`, `Mensagem`, `ProgressoUsuario` | Persistência dos dados |
-
 ---
 
 ## Fluxo Principal com Currículo (Sequência)
@@ -268,15 +257,3 @@ K --> D
 ```
 
 ---
-
-## Convenção Visual dos Diagramas
-
-| Cor lógica | Categoria |
-|---|---|
-| 🟩 Verde | Agente IA e Orquestrador |
-| 🟦 Azul | Frontend React |
-| 🟨 Amarelo | Banco de Dados |
-| 🟪 Roxo | Integrações Externas |
-
-> Os diagramas representam a arquitetura da versão **E3 (MVP Completo)** do sistema.  
-> Atualizações futuras devem modificar diretamente os blocos Mermaid deste documento.
