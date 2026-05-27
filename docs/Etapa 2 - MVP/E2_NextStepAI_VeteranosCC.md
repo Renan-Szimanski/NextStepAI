@@ -214,19 +214,12 @@ Três comportamentos indesejados identificados em testes com v1.1:
 
 > Insira screenshots das telas implementadas. Mínimo obrigatório: tela principal de interação e indicador de streaming.
 
-### Tela principal / interação com o agente
+### Indicador de carregamento / streaming visível + interação com o agente + tela principal
 
-<!-- Insira screenshot aqui -->
-
-**O que esta tela demonstra:**
-
-### Indicador de carregamento / streaming visível
-
-<!-- Insira screenshot aqui -->
+![Indicador de Streaming](https://raw.githubusercontent.com/Renan-Szimanski/NextStepAI/e83af674f5acfd6043d9a69eefb88d53a2ce4aed/docs/Etapa%202%20-%20MVP/Streaming%20-%20MVP.png)
 
 ### Tela de autenticação *(login ou cadastro)*
-
-<!-- Insira screenshot aqui -->
+![Tela de Autenticação](https://raw.githubusercontent.com/Renan-Szimanski/NextStepAI/e83af674f5acfd6043d9a69eefb88d53a2ce4aed/docs/Etapa%202%20-%20MVP/Tela%20de%20Login%20-%20MVP.png)
 
 ---
 
