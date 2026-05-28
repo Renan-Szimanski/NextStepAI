@@ -8,6 +8,8 @@
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL+pgvector-orange)](https://supabase.com/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
+Deploy disponível em: [NextStepAI - Vercel](https://next-step-ai-9pe1.vercel.app/)
+
 ## 🎯 Sobre o Projeto
 
 O **NextStepAI** é uma aplicação web inteligente que atua como um mentor de carreira automatizado. O usuário informa um cargo-alvo e, opcionalmente, envia seu currículo em PDF. O sistema:
