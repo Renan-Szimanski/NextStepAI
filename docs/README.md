@@ -46,5 +46,4 @@ Bem-vindo à documentação completa do **NextStepAI**, um mentor de carreira au
 
 ---
 
-**Última atualização:** Maio de 2026  
-**Versão do projeto:** E3 (MVP completo)
+**Última atualização:** Jun de 2026
