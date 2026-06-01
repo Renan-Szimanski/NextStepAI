@@ -44,9 +44,6 @@ Bem-vindo à documentação completa do **NextStepAI**, um mentor de carreira au
 - [Para Desenvolvedores](./guias/para-desenvolvedores.md) — Como adicionar tools, modificar prompts, testar.
 - [Troubleshooting](./guias/troubleshooting.md) — Problemas comuns e soluções.
 
-### Métricas
-- [Relatório Lighthouse](./metricas/lighthouse.md) — Performance, acessibilidade e boas práticas.
-
 ---
 
 **Última atualização:** Maio de 2026  
